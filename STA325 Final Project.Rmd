@@ -92,13 +92,13 @@ wv_all = merge(arcos_death_wv_all, wv_income_data, by.x = "BUYER_COUNTY", by.y =
 
 ## Exploratory Data Analysis
 ```{r}
-summary(death0)
-summary(death)
-summary(death1)
-
-head(arcos0)
-head(arcos1)
-summary(arcos1)
+# summary(death0)
+# summary(death)
+# summary(death1)
+# 
+# head(arcos0)
+# head(arcos1)
+# summary(arcos1)
 
 # total active weight by county and drug name
 arcos2 <- arcos1 %>%
