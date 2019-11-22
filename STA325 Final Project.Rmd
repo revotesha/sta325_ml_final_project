@@ -44,31 +44,34 @@ death1 <- death %>%
 
 ### Arcos dataset
 ```{r}
-arcos0 <- read.csv("data/arcos-wv-statewide-itemizedexcel.csv", header = TRUE)
+# arcos0 <- read.csv("data/arcos-wv-statewide-itemizedexcel.csv", header = TRUE)
+# 
+# # create subset with less variables
+# arcos_subset <- arcos0 %>%
+#   mutate(Year = str_sub(TRANSACTION_DATE, -4, -1)) %>%
+#   transmute(REPORTER_NAME = as.factor(REPORTER_NAME), # name of distributor/manufacturer who reported the transaction to DEA
+#             REPORTER_STATE = as.factor(REPORTER_STATE),
+#             BUYER_TYPE = as.factor(BUYER_BUS_ACT), # types of retailers
+#             BUYER_NAME = as.factor(BUYER_NAME),
+#             BUYER_ADDRESS = as.factor(BUYER_ADDRESS1),
+#             BUYER_CITY = as.factor(BUYER_CITY),
+#             BUYER_STATE = as.factor(BUYER_STATE),
+#             BUYER_ZIP = as.factor(BUYER_ZIP),
+#             BUYER_COUNTY = as.factor(BUYER_COUNTY),
+#             DRUG_CODE = as.factor(DRUG_CODE),
+#             DRUG_NAME = as.factor(DRUG_NAME),
+#             QUANTITY = as.integer(QUANTITY),
+#             TOTAL_ACTIVE_WT = as.numeric(CALC_BASE_WT_IN_GM), # weight of total active drug in each transaction, in grams 
+#             DOSAGE_UNIT= as.numeric(DOSAGE_UNIT), # num of tablets in each unit
+#             PRODUCT_NAME = as.factor(Product_Name),
+#             MEASURE = as.factor(Measure), # form of drugs - in WV dataset, all are pills
+#             EQU_MORPHINE = as.numeric(MME_Conversion_Factor), # equivalent amt of morphine in mg
+#             MANUFACTURER = as.character(Revised_Company_Name), # entity that manufactured, distributed or relabeled the drug product in the transaction
+#             DOS_STR = as.numeric(dos_str)) # strength of each dosage in mg (in this case, strength in each tablet) 
 
-# create subset with less variables
-arcos1 <- arcos0 %>%
-  mutate(Year = str_sub(TRANSACTION_DATE, -4, -1)) %>%
-  transmute(REPORTER_NAME = as.factor(REPORTER_NAME), #name of distributor/manufacturer who reported the transaction to DEA
-            REPORTER_STATE = as.factor(REPORTER_STATE),
-            BUYER_TYPE = as.factor(BUYER_BUS_ACT), #types of retailers
-            BUYER_NAME = as.factor(BUYER_NAME),
-            BUYER_ADDRESS = as.factor(BUYER_ADDRESS1),
-            BUYER_CITY = as.factor(BUYER_CITY),
-            BUYER_STATE = as.factor(BUYER_STATE),
-            BUYER_ZIP = as.factor(BUYER_ZIP),
-            BUYER_COUNTY = as.factor(BUYER_COUNTY),
-            DRUG_CODE = as.factor(DRUG_CODE),
-            DRUG_NAME = as.factor(DRUG_NAME),
-            QUANTITY = as.integer(QUANTITY),
-            TOTAL_ACTIVE_WT = as.numeric(CALC_BASE_WT_IN_GM), #weight of total active drug in each transaction, in grams 
-            DOSAGE_UNIT= as.numeric(DOSAGE_UNIT), # num of tablets in each unit
-            PRODUCT_NAME = as.factor(Product_Name),
-            MEASURE = as.factor(Measure), # form of drugs - in WV dataset, all are pills
-            EQU_MORPHINE = as.numeric(MME_Conversion_Factor), # equivalent amt of morphine in mg
-            MANUFACTURER = as.character(Revised_Company_Name), # entity that manufactured, distributed or relabeled the drug product in the transaction
-            DOS_STR = as.numeric(dos_str)) # strength of each dosage in mg (in this case, strength in each tablet) 
+# write.csv(arcos_subset, "data/arcos_subset.csv")
 
+arcos_subset = read.csv("data/arcos_subset.csv")
 ```
 
 ### Income dataset
@@ -83,8 +86,8 @@ wv_income_data = read.csv("data/wv_median_household_income_data.csv") %>%
 
 ### Merge datasets
 ```{r}
-# merge arcos1 and death1
-arcos_death_wv_all <- merge(arcos1, death1, by.x = "BUYER_COUNTY", by.y = "COUNTY", all.x = TRUE)
+# merge arcos_subset and death1
+arcos_death_wv_all <- merge(arcos_subset, death1, by.x = "BUYER_COUNTY", by.y = "COUNTY", all.x = TRUE)
 
 # merge income with arcos and death data
 wv_all = merge(arcos_death_wv_all, wv_income_data, by.x = "BUYER_COUNTY", by.y = "county", all.x = TRUE)
@@ -97,17 +100,17 @@ wv_all = merge(arcos_death_wv_all, wv_income_data, by.x = "BUYER_COUNTY", by.y =
 # summary(death1)
 # 
 # head(arcos0)
-# head(arcos1)
-# summary(arcos1)
+# head(arcos_subset)
+# summary(arcos_subset)
 
 # total active weight by county and drug name
-arcos2 <- arcos1 %>%
+arcos2 <- arcos_subset %>%
   group_by(BUYER_COUNTY,DRUG_NAME) %>%
   summarise(all_active_wt = sum(TOTAL_ACTIVE_WT))
 head(arcos2)
 
 # calculate total active weight in each county from 2006-2012
-all_act_wt <- arcos1 %>%
+all_act_wt <- arcos_subset %>%
   group_by(BUYER_COUNTY) %>%
   summarise(all_active_wt = sum(TOTAL_ACTIVE_WT))
 head(all_act_wt)
