@@ -25,13 +25,12 @@ death0 <- read.csv("data/Drug_Poisoning_Mortality_by_County.csv", header = TRUE)
 ```{r}
 # data cleaning
 thirty_plus = which(death0$est_death_rate == "30+")
-
 imputed_deaths = as.character(death0$est_death_rate)
 
 for(idx in thirty_plus){
-  random_death_rate = round(runif(1, 30, 957), 0) # this works not but I think we could
-  # also use another distribution that reflects distribution of adjusted death rates in
-  # wv. I (revo) can look into this.
+  random_death_rate = round(runif(1, 30, 957), 0) # this works now but I think we could
+  # also use another (truncated) distribution that reflects distribution of adjusted death rates in
+  # wv. I (revo) can look into this later if we want to.
   new_interval = paste0(random_death_rate, "-", random_death_rate)
   imputed_deaths[idx] = as.character(new_interval)
 }
