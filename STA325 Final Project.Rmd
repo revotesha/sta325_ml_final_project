@@ -8,22 +8,21 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(extrafont)
 ```
 
-### Load durg poisoning dataset
+## Data
+
+### Drug poisoning dataset
 ```{r}
-death0 <- read.csv("Drug_Poisoning_Mortality_by_County.csv", header = TRUE)
+death0 <- read.csv("data/Drug_Poisoning_Mortality_by_County.csv", header = TRUE)
 
 # est_death_rate is age adjusted death rate, deaths per 100,000 U.S. standard population for 2000
 
 # data cleaning
 death0 <- death0 %>%
-  rename(est_death_rate = Estimated.Age.adjusted.Death.Rate..16.Categories..in.ranges.) 
-summary(death0)
-```
+  rename(est_death_rate = Estimated.Age.adjusted.Death.Rate..16.Categories..in.ranges.)
 
-
-```{r}
 death <- death0 %>%
   mutate(
     est_death_rate1 = case_when(
@@ -36,30 +35,23 @@ death <- death0 %>%
          COUNTY = str_to_upper(County_name)) %>%
   select(County, COUNTY, FIPS,Year, pop_num, death_rate)
 
-summary(death)
-
 # recreate new variables
 death1 <- death %>%
   group_by(COUNTY) %>%
   summarise(avg_death_rate = mean(death_rate), # average death rate during 2006-2012
             avg_pop = mean(pop_num))
-
-summary(death1)
 ```
 
-
-### load arcos data for WV
+### Arcos dataset
 ```{r}
-# load arcos WV dataset
-arcos0 <- read.csv("arcos-wv-statewide-itemizedexcel.csv", header = TRUE)
-head(arcos0)
+arcos0 <- read.csv("data/arcos-wv-statewide-itemizedexcel.csv", header = TRUE)
 
 # create subset with less variables
 arcos1 <- arcos0 %>%
   mutate(Year = str_sub(TRANSACTION_DATE, -4, -1)) %>%
-  transmute(REPORTER_NAME = as.factor(REPORTER_NAME), #name of distributor/manufacturer who reported the transaction to DEA
+  transmute(REPORTER_NAME = as.factor(REPORTER_NAME), # name of distributor/manufacturer who reported the transaction to DEA
             REPORTER_STATE = as.factor(REPORTER_STATE),
-            BUYER_TYPE = as.factor(BUYER_BUS_ACT), #types of retailers
+            BUYER_TYPE = as.factor(BUYER_BUS_ACT), # types of retailers
             BUYER_NAME = as.factor(BUYER_NAME),
             BUYER_ADDRESS = as.factor(BUYER_ADDRESS1),
             BUYER_CITY = as.factor(BUYER_CITY),
@@ -69,42 +61,57 @@ arcos1 <- arcos0 %>%
             DRUG_CODE = as.factor(DRUG_CODE),
             DRUG_NAME = as.factor(DRUG_NAME),
             QUANTITY = as.integer(QUANTITY),
-            TOTAL_ACTIVE_WT = as.numeric(CALC_BASE_WT_IN_GM), #weight of total active drug in each transaction, in grams 
+            TOTAL_ACTIVE_WT = as.numeric(CALC_BASE_WT_IN_GM), # weight of total active drug in each transaction, in grams 
             DOSAGE_UNIT= as.numeric(DOSAGE_UNIT), # num of tablets in each unit
             PRODUCT_NAME = as.factor(Product_Name),
             MEASURE = as.factor(Measure), # form of drugs - in WV dataset, all are pills
             EQU_MORPHINE = as.numeric(MME_Conversion_Factor), # equivalent amt of morphine in mg
             MANUFACTURER = as.character(Revised_Company_Name), # entity that manufactured, distributed or relabeled the drug product in the transaction
             DOS_STR = as.numeric(dos_str)) # strength of each dosage in mg (in this case, strength in each tablet) 
-head(arcos1)
-
-summary(arcos1)
 ```
 
-
-
+### Income dataset
 ```{r}
+# income data -- is this adjusted for inflation? also only goes from 2011 to 2016.
+wv_income_data = read.csv("data/wv_median_household_income_data.csv") %>%
+  filter(county != "West Virginia") %>%
+  mutate(county = str_to_upper(county)) %>%
+  group_by(county) %>%
+  summarize(average_median_income = mean(median_income))
+```
+
+### Merge datasets
+```{r}
+# merge arcos1 and death1
+arcos_death_wv_all <- merge(arcos1, death1, by.x = "BUYER_COUNTY", by.y = "COUNTY", all.x = TRUE)
+
+# merge income with arcos and death data
+wv_all = merge(arcos_death_wv_all, wv_income_data, by.x = "BUYER_COUNTY", by.y = "county", all.x = TRUE)
+```
+
+## Exploratory Data Analysis
+```{r}
+# summary(death0)
+# summary(death)
+# summary(death1)
+# 
+# head(arcos0)
+# head(arcos1)
+# summary(arcos1)
+
+# total active weight by county and drug name
 arcos2 <- arcos1 %>%
   group_by(BUYER_COUNTY,DRUG_NAME) %>%
   summarise(all_active_wt = sum(TOTAL_ACTIVE_WT))
 head(arcos2)
-```
 
-
-```{r}
 # calculate total active weight in each county from 2006-2012
 all_act_wt <- arcos1 %>%
   group_by(BUYER_COUNTY) %>%
   summarise(all_active_wt = sum(TOTAL_ACTIVE_WT))
-
 head(all_act_wt)
-```
 
-
-```{r}
-# merge arcos1 and death1
-wv_all <- merge(arcos1, death1, by.x = "BUYER_COUNTY", by.y = "COUNTY", all.x = TRUE)
-
+# plot of active weight per person vs. average death rate
 # merge all_act_wt with death_avg
 all_act_wt_death <- merge(all_act_wt, death1, by.x = "BUYER_COUNTY", by.y = "COUNTY") %>%
   mutate(act_wt_person = all_active_wt/avg_pop)
@@ -114,6 +121,20 @@ ggplot(data = all_act_wt_death) +
   geom_point(aes(x = act_wt_person, y = avg_death_rate)) +
   labs(x = "Total Active Weight of Drug Per Person 2006-2012",
        y = "Total Overdose Death Rate in a County 2006-2012")
-
 ```
+
+Relationship between number of manufacturers/distributors shipping to a county vs opioid deaths by county
+```{r}
+wv_all %>%
+  group_by(REPORTER_NAME, avg_death_rate, BUYER_COUNTY) %>%
+  summarise(number_of_reporters = n()) %>%
+  group_by(BUYER_COUNTY, avg_death_rate) %>%
+  summarise(number_of_reporters_for_given_county = sum(number_of_reporters)) %>%
+  ggplot(., aes(x = avg_death_rate, y = number_of_reporters_for_given_county)) +
+  geom_point() +
+  labs(x = "Average death rate of a county", y = "Number of manufacturers involved",
+       title = "Relationship between number of manufacturers and death rates in a county?")
+```
+
+
 
