@@ -1,6 +1,6 @@
 ---
 title: "STA325 Final Project"
-author: "Alice Liao"
+author: "Alice Liao, Revo Tesha, Salvador ... "
 date: "10/7/2019"
 output: html_document
 ---
@@ -8,43 +8,55 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
-library(extrafont)
+set.seed(10)
 ```
 
 ## Data
 
 ### Drug poisoning dataset
 ```{r}
-death0 <- read.csv("data/Drug_Poisoning_Mortality_by_County.csv", header = TRUE)
-
+# load original dataset
+death0 <- read.csv("data/Drug_Poisoning_Mortality_by_County.csv", header = TRUE) %>%
+    rename(est_death_rate = Estimated.Age.adjusted.Death.Rate..16.Categories..in.ranges.)
 # est_death_rate is age adjusted death rate, deaths per 100,000 U.S. standard population for 2000
+```
 
+
+```{r}
 # data cleaning
-death0 <- death0 %>%
-  rename(est_death_rate = Estimated.Age.adjusted.Death.Rate..16.Categories..in.ranges.)
+thirty_plus = which(death0$est_death_rate == "30+")
+
+imputed_deaths = as.character(death0$est_death_rate)
+
+for(idx in thirty_plus){
+  random_death_rate = round(runif(1, 30, 957), 0) # this works not but I think we could
+  # also use another distribution that reflects distribution of adjusted death rates in
+  # wv. I (revo) can look into this.
+  new_interval = paste0(random_death_rate, "-", random_death_rate)
+  imputed_deaths[idx] = as.character(new_interval)
+}
+
+death0$est_death_rate = imputed_deaths
+death0$est_death_rate_cat = imputed_deaths
 
 death <- death0 %>%
-  mutate(
-    est_death_rate1 = case_when(
-      est_death_rate == "30+" ~ "30-30", #can we do this?
-      TRUE ~ as.character(est_death_rate))) %>%
-  separate(est_death_rate1, c("lower_rate", "upper_rate"), sep = "-") %>%
+  separate(est_death_rate, c("lower_rate", "upper_rate"), sep = "-") %>%
   mutate(death_rate = (as.numeric(lower_rate)+as.numeric(upper_rate))/2,
          pop_num = as.numeric(Population),
          County_name = str_replace_all(County, " County, WV", ""),
          COUNTY = str_to_upper(County_name)) %>%
-  select(County, COUNTY, FIPS,Year, pop_num, death_rate)
+  select(County, COUNTY, FIPS,Year, pop_num, est_death_rate_cat, death_rate)
 
-# recreate new variables
-death1 <- death %>%
-  group_by(COUNTY) %>%
-  summarise(avg_death_rate = mean(death_rate), # average death rate during 2006-2012
-            avg_pop = mean(pop_num))
+# # recreate new variables
+# death1 <- death %>%
+#   group_by(COUNTY) %>%
+#   summarise(avg_death_rate = mean(death_rate), # average death rate during 2006-2012
+#             avg_pop = mean(pop_num))
 ```
 
 ### Arcos dataset
 ```{r}
-arcos0 <- read.csv("data/arcos-wv-statewide-itemizedexcel.csv", header = TRUE)
+arcos0 <- read.csv("arcos-wv-statewide-itemizedexcel.csv", header = TRUE)
 
 # create subset with less variables
 arcos1 <- arcos0 %>%
@@ -134,6 +146,8 @@ wv_all %>%
   geom_point() +
   labs(x = "Average death rate of a county", y = "Number of manufacturers involved",
        title = "Relationship between number of manufacturers and death rates in a county?")
+
+View(wv_all)
 ```
 
 
