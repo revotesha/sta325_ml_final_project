@@ -46,11 +46,11 @@ death <- death0 %>%
          COUNTY = str_to_upper(County_name)) %>%
   select(County, COUNTY, FIPS,Year, pop_num, est_death_rate_cat, death_rate)
 
-# # recreate new variables
-# death1 <- death %>%
-#   group_by(COUNTY) %>%
-#   summarise(avg_death_rate = mean(death_rate), # average death rate during 2006-2012
-#             avg_pop = mean(pop_num))
+# recreate new variables
+death1 <- death %>%
+  group_by(COUNTY) %>%
+  summarise(avg_death_rate = mean(death_rate), # average death rate during 2006-2012
+            avg_pop = mean(pop_num), total_population = sum(pop_num))
 ```
 
 ### Arcos dataset
@@ -77,8 +77,14 @@ arcos1 <- arcos0 %>%
             PRODUCT_NAME = as.factor(Product_Name),
             MEASURE = as.factor(Measure), # form of drugs - in WV dataset, all are pills
             EQU_MORPHINE = as.numeric(MME_Conversion_Factor), # equivalent amt of morphine in mg
-            MANUFACTURER = as.character(Revised_Company_Name), # entity that manufactured, distributed or relabeled the drug product in the transaction
-            DOS_STR = as.numeric(dos_str)) # strength of each dosage in mg (in this case, strength in each tablet) 
+            MANUFACTURER = as.character(Revised_Company_Name), # entity that manufactured, distributed or 
+            # relabeled the drug product in the transaction
+            DOS_STR = as.numeric(dos_str)) # strength of each dosage in mg (in this case, strength in each tablet)
+
+# calculate total active weight in each county from 2006-2012
+all_act_wt <- arcos1 %>%
+  group_by(BUYER_COUNTY) %>%
+  summarise(all_active_wt = sum(TOTAL_ACTIVE_WT))
 ```
 
 ### Income dataset
@@ -91,13 +97,21 @@ wv_income_data = read.csv("data/wv_median_household_income_data.csv") %>%
   summarize(average_median_income = mean(median_income))
 ```
 
+### Party affiliation
+```{r}
+pol_affiliation = read.csv("data/wv_politics.csv")
+```
+
 ### Merge datasets
 ```{r}
 # merge arcos1 and death1
-arcos_death_wv_all <- merge(arcos1, death1, by.x = "BUYER_COUNTY", by.y = "COUNTY", all.x = TRUE)
+arcos_and_death <- merge(arcos1, death1, by.x = "BUYER_COUNTY", by.y = "COUNTY", all.x = TRUE)
 
 # merge income with arcos and death data
-wv_all = merge(arcos_death_wv_all, wv_income_data, by.x = "BUYER_COUNTY", by.y = "county", all.x = TRUE)
+arcos_death_and_income = merge(arcos_and_death, wv_income_data, by.x = "BUYER_COUNTY", by.y = "county", all.x = TRUE)
+
+# merge arcos_death_and_income with policatal affiliation data
+wv_all = merge(arcos_death_and_income, pol_affiliation, by.x = "BUYER_COUNTY", by.y = "State", all.x = TRUE)
 ```
 
 ## Exploratory Data Analysis
@@ -105,28 +119,17 @@ wv_all = merge(arcos_death_wv_all, wv_income_data, by.x = "BUYER_COUNTY", by.y =
 # summary(death0)
 # summary(death)
 # summary(death1)
-# 
 # head(arcos0)
 # head(arcos1)
 # summary(arcos1)
+```
 
-# total active weight by county and drug name
-arcos2 <- arcos1 %>%
-  group_by(BUYER_COUNTY,DRUG_NAME) %>%
-  summarise(all_active_wt = sum(TOTAL_ACTIVE_WT))
-head(arcos2)
+Average active weight of drugs per person by county plotted on a map and compared to opioids deaths by county.
 
-# calculate total active weight in each county from 2006-2012
-all_act_wt <- arcos1 %>%
-  group_by(BUYER_COUNTY) %>%
-  summarise(all_active_wt = sum(TOTAL_ACTIVE_WT))
-head(all_act_wt)
-
-# plot of active weight per person vs. average death rate
+```{r}
 # merge all_act_wt with death_avg
 all_act_wt_death <- merge(all_act_wt, death1, by.x = "BUYER_COUNTY", by.y = "COUNTY") %>%
   mutate(act_wt_person = all_active_wt/avg_pop)
-head(all_act_wt_death)
 
 ggplot(data = all_act_wt_death) +
   geom_point(aes(x = act_wt_person, y = avg_death_rate)) +
@@ -134,7 +137,8 @@ ggplot(data = all_act_wt_death) +
        y = "Total Overdose Death Rate in a County 2006-2012")
 ```
 
-Relationship between number of manufacturers/distributors shipping to a county vs opioid deaths by county
+Relationship between number of manufacturers/distributors shipping to a county vs opioid deaths by county.
+
 ```{r}
 wv_all %>%
   group_by(REPORTER_NAME, avg_death_rate, BUYER_COUNTY) %>%
@@ -145,9 +149,54 @@ wv_all %>%
   geom_point() +
   labs(x = "Average death rate of a county", y = "Number of manufacturers involved",
        title = "Relationship between number of manufacturers and death rates in a county?")
-
-View(wv_all)
 ```
 
+Number of manufacturers/distributors shipping to a county vs amount of opioids in active weight ordered by 
+pharmacies in the county.
+```{r}
+wv_all %>%
+  group_by(REPORTER_NAME, TOTAL_ACTIVE_WT, BUYER_COUNTY) %>%
+  summarise(number_of_reporters = n()) %>%
+  group_by(BUYER_COUNTY) %>%
+  summarise(number_of_reporters_for_given_county = sum(number_of_reporters),
+            total_active_drug_for_given_county = sum(TOTAL_ACTIVE_WT)) %>%
+  ggplot(., aes(x = total_active_drug_for_given_county, y = number_of_reporters_for_given_county)) +
+  geom_point() +
+  labs(x = "Total Active Drug Weight", y = "Number of manufacturers shipping to the county",
+       title = "Total active drug weight vs. number of manufacturers for that county")
+```
+
+Average active weight of drugs per person vs number of pharmacies per 10,000 people 
+```{r}
+weight_and_pop = wv_all %>%   
+  group_by(BUYER_COUNTY) %>%
+  summarise(total_population = first(total_population), avg_pop = first(avg_pop), all_active_wt = sum(TOTAL_ACTIVE_WT)) %>%
+  mutate(act_wt_person = all_active_wt/avg_pop) %>%
+  select(-c(avg_pop, all_active_wt))
+
+pharmacies = wv_all %>%
+  filter(BUYER_TYPE == "RETAIL PHARMACY" | BUYER_TYPE == "CHAIN PHARMACY") %>%
+  distinct(BUYER_ADDRESS, .keep_all = TRUE) %>%
+  group_by(BUYER_COUNTY) %>%
+  summarize(number_of_pharmacies = n())
+  
+weight_pop_and_pharmacies = inner_join(weight_and_pop, pharmacies) %>%
+  mutate(pharmacies_per_tt = (10000*number_of_pharmacies)/total_population)
+
+ggplot(weight_pop_and_pharmacies, aes(x = act_wt_person, y = pharmacies_per_tt)) +
+geom_point() +
+labs(x = "Avg. active weight of drugs per person", y = "Number of pharmacies")
+```
+
+Wait, why are the last two any useful? Was just doing those on the proposal and I am not
+sure why an EDA like the one above helps us with model justification.
+
+```{r}
+# total active weight by county and drug name
+arcos2 <- arcos1 %>%
+  group_by(BUYER_COUNTY,DRUG_NAME) %>%
+  summarise(all_active_wt = sum(TOTAL_ACTIVE_WT)) 
+head(arcos2)
+```
 
 
