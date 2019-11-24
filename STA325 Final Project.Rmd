@@ -26,7 +26,6 @@ death0 <- read.csv("data/Drug_Poisoning_Mortality_by_County.csv", header = TRUE)
 # data cleaning
 thirty_plus = which(death0$est_death_rate == "30+")
 imputed_deaths = as.character(death0$est_death_rate)
-
 for(idx in thirty_plus){
   random_death_rate = round(runif(1, 30, 957), 0) # this works now but I think we could
   # also use another (truncated) distribution that reflects distribution of adjusted death rates in
@@ -34,10 +33,8 @@ for(idx in thirty_plus){
   new_interval = paste0(random_death_rate, "-", random_death_rate)
   imputed_deaths[idx] = as.character(new_interval)
 }
-
 death0$imput_est_death_rate_num = imputed_deaths
 death0$imput_est_death_rate_cat = as.factor(imputed_deaths)
-
 death1 <- death0 %>%
   separate(imput_est_death_rate_num, c("lower_rate", "upper_rate"), sep = "-") %>%
   mutate(imput_est_death_rate_num = (as.numeric(lower_rate) + as.numeric(upper_rate))/2,
@@ -63,7 +60,6 @@ death1 <- death0 %>%
   )) %>%
   dplyr::select(COUNTY, FIPS,Year, est_death_rate_cat, Population)
       # , est_death_rate,imput_est_death_rate_cat, imput_est_death_rate_num)
-
 # # recreate new variables
 # death2 <- death1 %>%
 #   group_by(COUNTY) %>%
@@ -81,58 +77,25 @@ death1 %>%
          est_death_rate_cat = as.factor(est_death_rate_cat)) %>%
   ggplot(., aes(x = Year, fill = est_death_rate_cat)) +
   geom_bar(position=position_dodge())
-
-# death rate EDA
-death1 %>%
-ggplot()+
-facet_wrap(. ~ COUNTY) +
-geom_col(aes(x = Year, y = Population)) +
-labs(title = "County Population from 2006 - 2012, WV") # population is almost constant over the seven years
-
-death1 %>%
-ggplot()+
-facet_wrap(. ~ COUNTY) +
-geom_col(aes(x = Year, y = est_death_rate_cat)) +
-# geom_hline(yintercept = median(death_rate))+
-labs(title = "Drug-related Death Rate from 2006 - 2012, WV") # death rate in general has a upward trend
-
-# arcos original dataset EDA
-
-# total active weight by county and drug name
-arcos_wt_eda <- arcos1 %>%
-group_by(BUYER_COUNTY, Year) %>%
-summarise(active_wt_by_year = sum(TOTAL_ACTIVE_WT))
-head(arcos_wt_eda)
-
-arcos_wt_eda %>%
-ggplot()+
-facet_wrap(. ~ BUYER_COUNTY) +
-geom_col(aes(x = Year, y = active_wt_by_year)) +
-labs(title = "Total Active Drug Weight (in grams) from 2006-2012 by County, WV") # total active wt in general has an upward trend
 ```
-
-
 
 
 ### Population data
 ```{r}
 pop_data = read.csv("data/2012-2018 pop for wv.csv") %>%
-  dplyr::select(GEO.display.label, respop72010, respop72011, respop72012) %>%
+  dplyr::select(GEO.display.label, respop72012) %>%
   slice(-1) %>%
   mutate(County = str_remove_all(GEO.display.label, "County, West Virginia"),
          County = str_trim(County),
          County = as.factor(str_to_upper(County)),
-         respop72010 = as.numeric(as.character(respop72010)),
-         respop72011 = as.numeric(as.character(respop72011)),
          respop72012 = as.numeric(as.character(respop72012))) %>%
-  mutate(population = (respop72010 + respop72011 + respop72012)/3) %>%
-  dplyr::select(-c(GEO.display.label, respop72010, respop72011, respop72012))
+  mutate(population = respop72012) %>%
+  dplyr::select(-c(GEO.display.label,respop72012))
 ```
 
 ### Arcos dataset
 ```{r}
 arcos0 <- read.csv("arcos-wv-statewide-itemizedexcel.csv", header = TRUE)
-
 # create subset with less variables
 arcos1 <- arcos0 %>%
  # mutate(Year = str_sub(TRANSACTION_DATE, -4, -1)) %>%
@@ -164,6 +127,36 @@ all_act_wt <- arcos1 %>%
   summarise(all_active_wt = sum(TOTAL_ACTIVE_WT))
 ```
 
+```{r}
+# death rate EDA
+death1 %>%
+  ggplot()+
+  facet_wrap(. ~ COUNTY) +
+  geom_col(aes(x = Year, y = Population)) +
+  labs(title = "County Population from 2006 - 2012, WV") # population is almost constant over the seven years
+
+death1 %>%
+  ggplot()+
+  facet_wrap(. ~ COUNTY) +
+  geom_col(aes(x = Year, y = est_death_rate_cat)) +
+  # geom_hline(yintercept = median(death_rate))+
+  labs(title = "Drug-related Death Rate from 2006 - 2012, WV") # death rate in general has a upward trend
+
+# arcos original dataset EDA
+# total active weight by county and drug name
+arcos_wt_eda <- arcos1 %>%
+  group_by(BUYER_COUNTY, Year) %>%
+  summarise(active_wt_by_year = sum(TOTAL_ACTIVE_WT))
+
+# head(arcos_wt_eda)
+
+arcos_wt_eda %>%
+  ggplot()+
+  facet_wrap(. ~ BUYER_COUNTY) +
+  geom_col(aes(x = Year, y = active_wt_by_year)) +
+  labs(title = "Total Active Drug Weight (in grams) from 2006-2012 by County, WV") # total active wt in general has an upward trend
+```
+
 ### Income dataset
 ```{r}
 # income data -- is this adjusted for inflation? also only goes from 2011 to 2016.
@@ -187,27 +180,20 @@ pol_affiliation = rbind(incomp_pol_affiliation, taylor_cnty)
 ```{r}
 # merge arcos1 and death2
 arcos_and_death <- merge(arcos1, death1, by.x = c("BUYER_COUNTY", "Year"), by.y = c("COUNTY", "Year"), all.x = TRUE)
-
 # merge income with arcos and death data
 arcos_death_and_income = merge(arcos_and_death, wv_income_data, by.x = "BUYER_COUNTY", by.y = "county", all.x = TRUE)
-
 # merge arcos_death_and_income with policatal affiliation data
 wv_all0 = merge(arcos_death_and_income, pol_affiliation, by.x = "BUYER_COUNTY", by.y = "State", all.x = TRUE)
-
-<<<<<<< HEAD
-# merge with population data
-wv_all = merge(wv_all0, pop_data, by.x = "BUYER_COUNTY", by.y = "County", all.x = TRUE)
-View(wv_all)
-=======
 # merge with population data, create total active weight in county per person
 wv_all1 = merge(wv_all0, pop_data, by.x = "BUYER_COUNTY", by.y = "County", all.x = TRUE)
-TAWICPP<-wv_all1%>%
+TAWICPP<-wv_all1 %>%
   group_by(BUYER_COUNTY) %>%
   summarise(county_total_wt=sum(TOTAL_ACTIVE_WT), population=first(population)) %>%
   mutate(act_wt_person_county = county_total_wt/population)
-wv_all = merge(wv_all1, TAWICPP, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", all.x = TRUE)
+wv_all = merge(wv_all1, TAWICPP, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", all.x = TRUE) %>%
+  filter(Year == 2012) # only consider 2012
+
 head(wv_all)
->>>>>>> 51b13f4f44a66254927db9b22d73d8df01b83cf5
 ```
 
 ## Exploratory Data Analysis
@@ -230,33 +216,23 @@ twt_p = ggplot(wv_all, aes(x = log(TOTAL_ACTIVE_WT))) +
   geom_histogram() +
   labs(x = "Log of Total Active Weight")
 plot_grid(wt_p, twt_p)
-
 du_p = ggplot(wv_all, aes(x = DOSAGE_UNIT)) +
   geom_histogram() +
   labs(x = "Dosage Unit")
-
 tdu_p = ggplot(wv_all, aes(x = log(DOSAGE_UNIT))) +
   geom_histogram() +
   labs(x = "Log Dosage Unit")
 plot_grid(du_p, tdu_p)
-
 ds_p = ggplot(wv_all, aes(x = DOS_STR)) +
   geom_histogram() +
   labs(x = "Dosage Strength")
-
 ds_p
 ```
 
 Average active weight of drugs per person by county plotted on a map and compared to opioids deaths by county.
 ```{r}
-# merge all_act_wt with death_avg
-death1%>%
-  group_by()
-all_act_wt_death <- merge(all_act_wt, death1, by.x = "BUYER_COUNTY", by.y = "COUNTY") %>%
-  mutate(act_wt_person = all_active_wt/avg_pop)
-
-ggplot(data = all_act_wt_death) +
-  geom_point(aes(x = act_wt_person, y = avg_death_rate)) +
+ggplot(data = wv_all) +
+  geom_point(aes(x = act_wt_person_county, y = est_death_rate_cat)) +
   labs(x = "Total Active Weight of Drug Per Person 2006-2012",
        y = "Total Overdose Death Rate in a County 2006-2012")
 ```
@@ -264,11 +240,11 @@ ggplot(data = all_act_wt_death) +
 Relationship between number of manufacturers/distributors shipping to a county vs opioid deaths by county.
 ```{r}
 wv_all %>%
-  group_by(REPORTER_NAME, avg_death_rate, BUYER_COUNTY) %>%
+  group_by(REPORTER_NAME, est_death_rate_cat, BUYER_COUNTY) %>%
   summarise(number_of_reporters = n()) %>%
-  group_by(BUYER_COUNTY, avg_death_rate) %>%
+  group_by(BUYER_COUNTY, est_death_rate_cat) %>%
   summarise(number_of_reporters_for_given_county = sum(number_of_reporters)) %>%
-  ggplot(., aes(x = avg_death_rate, y = number_of_reporters_for_given_county)) +
+  ggplot(., aes(x = est_death_rate_cat, y = number_of_reporters_for_given_county)) +
   geom_point() +
   labs(x = "Average death rate of a county", y = "Number of manufacturers involved",
        title = "Relationship between number of manufacturers and death rates in a county?")
@@ -291,31 +267,29 @@ wv_all %>%
 
 Average active weight of drugs per person vs number of pharmacies per 10,000 people.
 ```{r}
-weight_and_pop = wv_all %>%   
-  group_by(BUYER_COUNTY) %>%
-  summarise(total_population = first(total_population), avg_pop = first(avg_pop), 
-            all_active_wt = sum(TOTAL_ACTIVE_WT)) %>%
-  mutate(act_wt_person = all_active_wt/avg_pop) %>%
-  dplyr::select(-c(avg_pop, all_active_wt))
-
 pharmacies = wv_all %>%
-  filter(BUYER_TYPE == "RETAIL PHARMACY" | BUYER_TYPE == "CHAIN PHARMACY") %>%
   distinct(BUYER_ADDRESS, .keep_all = TRUE) %>%
   group_by(BUYER_COUNTY) %>%
-  summarize(number_of_pharmacies = n())
+  summarize(number_of_pharmacies = n(), Population = first(Population))
+
+active_weight = wv_all %>%
+  group_by(BUYER_COUNTY) %>%
+  distinct(act_wt_person_county, .keep_all = TRUE) %>%
+  ungroup() %>%
+  dplyr::select(BUYER_COUNTY, act_wt_person_county)
   
-weight_pop_and_pharmacies = inner_join(weight_and_pop, pharmacies) %>%
+pop_and_pharmacies = inner_join(active_weight, pharmacies) %>%
   ###### someone check if this is how you calculate number of pharmacies per 10,000 ######
-  mutate(pharmacies_per_tt = (10000*number_of_pharmacies)/total_population)
+  mutate(pharmacies_per_tt = (10000*number_of_pharmacies)/Population)
+
   ########################################################################################
-ggplot(weight_pop_and_pharmacies, aes(x = act_wt_person, y = pharmacies_per_tt)) +
+ggplot(pop_and_pharmacies, aes(x = act_wt_person_county, y = pharmacies_per_tt)) +
 geom_point() +
 labs(x = "Avg. active weight of drugs per person", y = "Number of pharmacies")
 ```
 
 Distribution of oxycodone and hydrocodone.
 ```{r}
-
 ```
 
 Average active weight of drugs per person vs strength of dose.
@@ -333,6 +307,4 @@ head(arcos2)
 
 ## Modeling:
 ```{r}
-
 ```
-
