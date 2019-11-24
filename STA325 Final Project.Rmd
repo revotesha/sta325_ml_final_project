@@ -165,6 +165,7 @@ wv_all0 = merge(arcos_death_and_income, pol_affiliation, by.x = "BUYER_COUNTY", 
 
 # merge with population data
 wv_all = merge(wv_all0, pop_data, by.x = "BUYER_COUNTY", by.y = "County", all.x = TRUE)
+View(wv_all)
 ```
 
 ## Exploratory Data Analysis
