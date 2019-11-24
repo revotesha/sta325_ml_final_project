@@ -89,6 +89,7 @@ pop_data = read.csv("data/2012-2018 pop for wv.csv") %>%
   dplyr::select(GEO.display.label, respop72010, respop72011, respop72012) %>%
   slice(-1) %>%
   mutate(County = str_remove_all(GEO.display.label, "County, West Virginia"),
+         County = str_trim(County),
          County = as.factor(str_to_upper(County)),
          respop72010 = as.numeric(as.character(respop72010)),
          respop72011 = as.numeric(as.character(respop72011)),
