@@ -17,7 +17,12 @@ set.seed(10)
 ### Drug poisoning dataset
 ```{r}
 # load original dataset
-death0 <- read.csv("data/Drug_Poisoning_Mortality_by_County.csv", header = TRUE) %>%
+death.wv <- read.csv("data/Drug_Poisoning_Mortality_by_County.csv", header = TRUE) 
+
+death.oh <- read.csv("NCHS_-_Drug_Poisoning_Mortality_by_County__United_Statesoh.csv", header = TRUE, as.is = TRUE) %>%
+   mutate(Population = as.numeric(gsub(",","",Population,fixed=TRUE)))
+
+death0<-rbind(death.wv, death.oh)%>%
     rename(est_death_rate = Estimated.Age.adjusted.Death.Rate..16.Categories..in.ranges.)
 # est_death_rate is age adjusted death rate, deaths per 100,000 U.S. standard population for 2000
 ```
@@ -193,7 +198,7 @@ TAWICPP<-wv_all1 %>%
 wv_all = merge(wv_all1, TAWICPP, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", all.x = TRUE) %>%
   filter(Year == 2012) # only consider 2012
 
-head(wv_all)
+tail(wv_all)
 ```
 
 ## Exploratory Data Analysis
