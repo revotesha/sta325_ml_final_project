@@ -308,3 +308,9 @@ head(arcos2)
 ## Modeling:
 ```{r}
 ```
+
+-- should we add one state, can we do county levels without having to worry 
+about having a state predictor?
+-- use income as predictor
+-- look for income for another state
+-- look at proposal feedback summary
