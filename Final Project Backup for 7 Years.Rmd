@@ -8,7 +8,6 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
-library(readr)
 library(cowplot)
 set.seed(10)
 ```
@@ -18,13 +17,7 @@ set.seed(10)
 ### Drug poisoning dataset
 ```{r}
 # load original dataset
-death.wv <- read.csv("data/Drug_Poisoning_Mortality_by_County.csv", header = TRUE) 
-
-death.oh <- read.csv("data/NCHS_-_Drug_Poisoning_Mortality_by_County__United_Statesoh.csv", 
-                     header = TRUE, as.is = TRUE) %>%
-   mutate(Population = as.numeric(gsub(",","",Population,fixed=TRUE)))
-
-death0<-rbind(death.wv, death.oh)%>%
+death0 <- read.csv("data/Drug_Poisoning_Mortality_by_County.csv", header = TRUE) %>%
     rename(est_death_rate = Estimated.Age.adjusted.Death.Rate..16.Categories..in.ranges.)
 # est_death_rate is age adjusted death rate, deaths per 100,000 U.S. standard population for 2000
 ```
@@ -40,7 +33,6 @@ for(idx in thirty_plus){
   new_interval = paste0(random_death_rate, "-", random_death_rate)
   imputed_deaths[idx] = as.character(new_interval)
 }
-
 death0$imput_est_death_rate_num = imputed_deaths
 death0$imput_est_death_rate_cat = as.factor(imputed_deaths)
 death1 <- death0 %>%
@@ -66,7 +58,8 @@ death1 <- death0 %>%
     est_death_rate == "28-29.9" ~ 5,
     est_death_rate == "30+" ~ 6
   )) %>%
-  dplyr::select(COUNTY, FIPS,Year, est_death_rate_cat, Population)
+  dplyr::select(COUNTY, FIPS,Year, est_death_rate_cat, Population) # %>%
+  # filter(Year == 2012)
       # , est_death_rate,imput_est_death_rate_cat, imput_est_death_rate_num)
 # # recreate new variables
 # death2 <- death1 %>%
@@ -77,64 +70,15 @@ death1 <- death0 %>%
 
 
 ```{r}
+# does distribution of estimated death rate change by year? looks like it doesnt.
+# so we pick one year? continuing with all years included for now.
 death1 %>%
   dplyr::select(Year, est_death_rate_cat) %>%
   mutate(Year = as.factor(Year),
          est_death_rate_cat = as.factor(est_death_rate_cat)) %>%
   ggplot(., aes(x = Year, fill = est_death_rate_cat)) +
   geom_bar(position=position_dodge())
-```
 
-<!-- ### Population data -->
-<!-- ```{r} -->
-<!-- pop_data = read.csv("data/2012-2018 pop for wv.csv") %>% -->
-<!--   dplyr::select(GEO.display.label, respop72012) %>% -->
-<!--   slice(-1) %>% -->
-<!--   mutate(County = str_remove_all(GEO.display.label, "County, West Virginia"), -->
-<!--          County = str_trim(County), -->
-<!--          County = as.factor(str_to_upper(County)), -->
-<!--          respop72012 = as.numeric(as.character(respop72012))) %>% -->
-<!--   mutate(population = respop72012) %>% -->
-<!--   dplyr::select(-c(GEO.display.label,respop72012)) -->
-<!-- ``` -->
-
-### Arcos dataset
-```{r}
-arcos0a = read.csv("arcos-wv-statewide-itemizedexcel.csv", header = TRUE)
-acros0b = read_tsv("arcos-oh-statewide-itemized.tsv", col_names = TRUE)
-
-# create subset with less variables
-arcos1 <- rbind(arcos0a, acros0b) %>%
- # mutate(Year = str_sub(TRANSACTION_DATE, -4, -1)) %>%
-  transmute(Year = as.numeric(str_sub(TRANSACTION_DATE, -4, -1)),
-            REPORTER_NAME = as.factor(REPORTER_NAME), # name of distributor/manufacturer who reported the transaction to DEA
-            REPORTER_STATE = as.factor(REPORTER_STATE),
-            BUYER_TYPE = as.factor(BUYER_BUS_ACT), # types of retailers
-            BUYER_NAME = as.factor(BUYER_NAME),
-            BUYER_ADDRESS = as.factor(BUYER_ADDRESS1),
-            BUYER_CITY = as.factor(BUYER_CITY),
-            BUYER_STATE = as.factor(BUYER_STATE),
-            BUYER_ZIP = as.factor(BUYER_ZIP),
-            BUYER_COUNTY = as.factor(BUYER_COUNTY),
-            DRUG_CODE = as.factor(DRUG_CODE),
-            DRUG_NAME = as.factor(DRUG_NAME),
-            QUANTITY = as.integer(QUANTITY),
-            TOTAL_ACTIVE_WT = as.numeric(CALC_BASE_WT_IN_GM), # weight of total active drug in each transaction, in grams 
-            DOSAGE_UNIT= as.numeric(DOSAGE_UNIT), # num of tablets in each unit
-            PRODUCT_NAME = as.factor(Product_Name),
-            MEASURE = as.factor(Measure), # form of drugs - in WV dataset, all are pills
-            EQU_MORPHINE = as.numeric(MME_Conversion_Factor), # equivalent amt of morphine in mg
-            MANUFACTURER = as.factor(Revised_Company_Name), # entity that manufactured, distributed or 
-            # relabeled the drug product in the transaction
-            DOS_STR = as.numeric(dos_str)) # strength of each dosage in mg (in this case, strength in each tablet)
-# head(arcos1)
-# calculate total active weight in each county from 2006-2012
-all_act_wt <- arcos1 %>%
-  group_by(BUYER_COUNTY) %>%
-  summarise(all_active_wt = sum(TOTAL_ACTIVE_WT))
-```
-
-```{r}
 # death rate EDA
 death1 %>%
   ggplot()+
@@ -164,34 +108,75 @@ arcos_wt_eda %>%
   labs(title = "Total Active Drug Weight (in grams) from 2006-2012 by County, WV") # total active wt in general has an upward trend
 ```
 
+
+
+
+### Population data
+```{r}
+pop_data = read.csv("data/2012-2018 pop for wv.csv") %>%
+  dplyr::select(GEO.display.label, respop72012) %>%
+  slice(-1) %>%
+  mutate(County = str_remove_all(GEO.display.label, "County, West Virginia"),
+         County = str_trim(County),
+         County = as.factor(str_to_upper(County)),
+         respop72010 = as.numeric(as.character(respop72010)),
+         respop72011 = as.numeric(as.character(respop72011)),
+         respop72012 = as.numeric(as.character(respop72012))) %>%
+  mutate(population = (respop72010 + respop72011 + respop72012)/3) %>%
+  dplyr::select(-c(GEO.display.label, respop72010, respop72011, respop72012))
+```
+
+### Arcos dataset
+```{r}
+arcos0 <- read.csv("arcos-wv-statewide-itemizedexcel.csv", header = TRUE)
+# create subset with less variables
+arcos1 <- arcos0 %>%
+ # mutate(Year = str_sub(TRANSACTION_DATE, -4, -1)) %>%
+  transmute(Year = as.numeric(str_sub(TRANSACTION_DATE, -4, -1)),
+            REPORTER_NAME = as.factor(REPORTER_NAME), # name of distributor/manufacturer who reported the transaction to DEA
+            REPORTER_STATE = as.factor(REPORTER_STATE),
+            BUYER_TYPE = as.factor(BUYER_BUS_ACT), # types of retailers
+            BUYER_NAME = as.factor(BUYER_NAME),
+            BUYER_ADDRESS = as.factor(BUYER_ADDRESS1),
+            BUYER_CITY = as.factor(BUYER_CITY),
+            BUYER_STATE = as.factor(BUYER_STATE),
+            BUYER_ZIP = as.factor(BUYER_ZIP),
+            BUYER_COUNTY = as.factor(BUYER_COUNTY),
+            DRUG_CODE = as.factor(DRUG_CODE),
+            DRUG_NAME = as.factor(DRUG_NAME),
+            QUANTITY = as.integer(QUANTITY),
+            TOTAL_ACTIVE_WT = as.numeric(CALC_BASE_WT_IN_GM), # weight of total active drug in each transaction, in grams 
+            DOSAGE_UNIT= as.numeric(DOSAGE_UNIT), # num of tablets in each unit
+            PRODUCT_NAME = as.factor(Product_Name),
+            MEASURE = as.factor(Measure), # form of drugs - in WV dataset, all are pills
+            EQU_MORPHINE = as.numeric(MME_Conversion_Factor), # equivalent amt of morphine in mg
+            MANUFACTURER = as.factor(Revised_Company_Name), # entity that manufactured, distributed or 
+            # relabeled the drug product in the transaction
+            DOS_STR = as.numeric(dos_str)) # strength of each dosage in mg (in this case, strength in each tablet)
+# head(arcos1)
+# calculate total active weight in each county from 2006-2012
+all_act_wt <- arcos1 %>%
+  group_by(BUYER_COUNTY) %>%
+  summarise(all_active_wt = sum(TOTAL_ACTIVE_WT))
+```
+
 ### Income dataset
 ```{r}
+# income data -- is this adjusted for inflation? also only goes from 2011 to 2016.
 wv_income_data = read.csv("data/wv_median_household_income_data.csv") %>%
-  filter(year == 2012) %>%
   filter(county != "West Virginia") %>%
   mutate(county = str_to_upper(county)) %>%
-  dplyr::select(county, median_income)
-
-oh_income_data = read.csv("data/ohio_median_household_income_data.csv") %>%
-  dplyr::select(GCT_STUB.display.label.1, HC01) %>%
-  clean_names() %>%
-  transmute(county = str_trim(str_to_upper(str_remove_all(as.character(gct_stub_display_label_1), " County"))),
-            median_income = as.numeric(as.character(hc01))) %>%
-  slice(-1,-2)
-
-income_data = rbind(wv_income_data, oh_income_data)
+  group_by(county) %>%
+  summarize(average_median_income = mean(median_income))
 ```
 
 ### Party affiliation
 ```{r}
-wv_pol_affiliation = read.csv("data/wv_politics.csv")
-oh_pol_affilitation = read.csv("data/oh_politics.csv") %>%
-  mutate(Political.affiliation = Party.affiliation,
-         State = str_trim(str_to_upper(State))) %>%
-  dplyr::select(-Party.affiliation) %>%
-  filter(State != "")
-
-pol_affiliation = rbind(wv_pol_affiliation, oh_pol_affilitation)
+incomp_pol_affiliation = read.csv("data/wv_politics.csv")
+# according to https://www.politico.com/election-results/2018/west-virginia/,
+# taylor county is republican; taylor was missing in the csv above
+taylor_cnty = tibble(State = "TAYLOR", Political.affiliation = "Republican")
+pol_affiliation = rbind(incomp_pol_affiliation, taylor_cnty)
 ```
 
 ### Merge datasets
@@ -199,23 +184,30 @@ pol_affiliation = rbind(wv_pol_affiliation, oh_pol_affilitation)
 # merge arcos1 and death2
 arcos_and_death <- merge(arcos1, death1, by.x = c("BUYER_COUNTY", "Year"), by.y = c("COUNTY", "Year"), all.x = TRUE)
 # merge income with arcos and death data
-arcos_death_and_income = merge(arcos_and_death, income_data, by.x = "BUYER_COUNTY", by.y = "county", all.x = TRUE)
+arcos_death_and_income = merge(arcos_and_death, wv_income_data, by.x = "BUYER_COUNTY", by.y = "county", all.x = TRUE)
 # merge arcos_death_and_income with policatal affiliation data
 wv_all0 = merge(arcos_death_and_income, pol_affiliation, by.x = "BUYER_COUNTY", by.y = "State", all.x = TRUE)
 # merge with population data, create total active weight in county per person
-# wv_all1 = merge(wv_all0, pop_data, by.x = "BUYER_COUNTY", by.y = "County", all.x = TRUE)
-
-TAWICPP <- wv_all0 %>%
+wv_all1 = merge(wv_all0, pop_data, by.x = "BUYER_COUNTY", by.y = "County", all.x = TRUE)
+TAWICPP<-wv_all1%>%
   group_by(BUYER_COUNTY) %>%
-  summarise(county_total_wt=sum(TOTAL_ACTIVE_WT), Population=first(Population)) %>%
-  mutate(act_wt_person_county = county_total_wt/Population)
-
-oh_wv_all = merge(wv_all0, TAWICPP, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", all.x = TRUE) %>%
-  filter(Year == 2012) %>% # only consider 2012
-  filter(!is.na(act_wt_person_county))
+  summarise(county_total_wt=sum(TOTAL_ACTIVE_WT), population=first(population)) %>%
+  mutate(act_wt_person_county = county_total_wt/population)
+wv_all = merge(wv_all1, TAWICPP, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", all.x = TRUE)
+head(wv_all)
 ```
 
 ## Exploratory Data Analysis
+
+```{r}
+# summary(death0)
+# summary(death)
+# summary(death2)
+# head(arcos0)
+# head(arcos1)
+# summary(arcos1)
+View(wv_all)
+```
 
 ```{r}
 wt_p = ggplot(wv_all, aes(x = TOTAL_ACTIVE_WT)) +
@@ -249,11 +241,11 @@ ggplot(data = wv_all) +
 Relationship between number of manufacturers/distributors shipping to a county vs opioid deaths by county.
 ```{r}
 wv_all %>%
-  group_by(REPORTER_NAME, est_death_rate_cat, BUYER_COUNTY) %>%
+  group_by(REPORTER_NAME, avg_death_rate, BUYER_COUNTY) %>%
   summarise(number_of_reporters = n()) %>%
-  group_by(BUYER_COUNTY, est_death_rate_cat) %>%
+  group_by(BUYER_COUNTY, avg_death_rate) %>%
   summarise(number_of_reporters_for_given_county = sum(number_of_reporters)) %>%
-  ggplot(., aes(x = est_death_rate_cat, y = number_of_reporters_for_given_county)) +
+  ggplot(., aes(x = avg_death_rate, y = number_of_reporters_for_given_county)) +
   geom_point() +
   labs(x = "Average death rate of a county", y = "Number of manufacturers involved",
        title = "Relationship between number of manufacturers and death rates in a county?")
@@ -276,23 +268,23 @@ wv_all %>%
 
 Average active weight of drugs per person vs number of pharmacies per 10,000 people.
 ```{r}
+weight_and_pop = wv_all %>%   
+  group_by(BUYER_COUNTY) %>%
+  summarise(total_population = first(total_population), avg_pop = first(avg_pop), 
+            all_active_wt = sum(TOTAL_ACTIVE_WT)) %>%
+  mutate(act_wt_person = all_active_wt/avg_pop) %>%
+  dplyr::select(-c(avg_pop, all_active_wt))
 pharmacies = wv_all %>%
+  filter(BUYER_TYPE == "RETAIL PHARMACY" | BUYER_TYPE == "CHAIN PHARMACY") %>%
   distinct(BUYER_ADDRESS, .keep_all = TRUE) %>%
   group_by(BUYER_COUNTY) %>%
-  summarize(number_of_pharmacies = n(), Population = first(Population))
-
-active_weight = wv_all %>%
-  group_by(BUYER_COUNTY) %>%
-  distinct(act_wt_person_county, .keep_all = TRUE) %>%
-  ungroup() %>%
-  dplyr::select(BUYER_COUNTY, act_wt_person_county)
+  summarize(number_of_pharmacies = n())
   
-pop_and_pharmacies = inner_join(active_weight, pharmacies) %>%
+weight_pop_and_pharmacies = inner_join(weight_and_pop, pharmacies) %>%
   ###### someone check if this is how you calculate number of pharmacies per 10,000 ######
-  mutate(pharmacies_per_tt = (10000*number_of_pharmacies)/Population)
-
+  mutate(pharmacies_per_tt = (10000*number_of_pharmacies)/total_population)
   ########################################################################################
-ggplot(pop_and_pharmacies, aes(x = act_wt_person_county, y = pharmacies_per_tt)) +
+ggplot(weight_pop_and_pharmacies, aes(x = act_wt_person, y = pharmacies_per_tt)) +
 geom_point() +
 labs(x = "Avg. active weight of drugs per person", y = "Number of pharmacies")
 ```
@@ -317,5 +309,3 @@ head(arcos2)
 ## Modeling:
 ```{r}
 ```
-
-
