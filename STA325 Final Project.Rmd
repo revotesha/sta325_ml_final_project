@@ -50,25 +50,17 @@ death1 <- death0 %>%
          pop_num = as.numeric(Population),
          County_name = case_when(State == "West Virginia" ~ str_replace_all(County, " County, WV", ""),
                                  TRUE ~ str_replace_all(County, " County, OH", "")),
-         COUNTY = str_to_upper(County_name)) %>%
-  mutate(est_death_rate_cat = case_when(
-    est_death_rate == "2-3.9" ~ 1,
-    est_death_rate == "4-5.9" ~ 1,
-    est_death_rate == "6-7.9" ~ 1,
-    est_death_rate == "8-9.9" ~ 2,
-    est_death_rate == "10-11.9" ~ 2,
-    est_death_rate == "12-13.9" ~ 2,
-    est_death_rate == "14-15.9" ~ 3,
-    est_death_rate == "16-17.9" ~ 3,
-    est_death_rate == "18-19.9" ~ 3,
-    est_death_rate == "20-21.9" ~ 4,
-    est_death_rate == "22-23.9" ~ 4,
-    est_death_rate == "24-25.9" ~ 4,
-    est_death_rate == "26-27.9" ~ 5,
-    est_death_rate == "28-29.9" ~ 5,
-    est_death_rate == "30+" ~ 6
-  )) %>%
-  dplyr::select(State, COUNTY, FIPS,Year, est_death_rate_cat, Population)
+         COUNTY = str_to_upper(County_name),
+         STATE = case_when(State == "West Virginia" ~ "WV",
+                           TRUE ~ "OH"),
+         est_death_rate_cat = case_when(
+           est_death_rate %in% c("2-3.9", "4-5.9","6-7.9")  ~ 1,
+           est_death_rate %in% c("8-9.9", "10-11.9","12-13.9")  ~ 2,
+           est_death_rate %in% c("14-15.9", "16-17.9", "18-19.9") ~ 3,
+           est_death_rate %in% c("20-21.9", "22-23.9", "24-25.9") ~ 4,
+           est_death_rate %in% c("26-27.9","28-29.9") ~ 5,
+           TRUE ~ 6))%>%
+  select(STATE, COUNTY, FIPS,Year, est_death_rate_cat, Population)
       # , est_death_rate,imput_est_death_rate_cat, imput_est_death_rate_num)
 # # recreate new variables
 # death2 <- death1 %>%
@@ -154,13 +146,15 @@ arcos_wt_eda %>%
 wv_income_data = read.csv("data/wv_median_household_income_data.csv") %>%
   filter(year == 2012) %>%
   filter(county != "West Virginia") %>%
-  mutate(county = str_to_upper(county)) %>%
-  dplyr::select(county, median_income)
+  mutate(county = str_to_upper(county),
+         state = "WV") %>%
+  dplyr::select(state, county, median_income)
 
 oh_income_data = read.csv("data/ohio_median_household_income_data.csv") %>%
   dplyr::select(GCT_STUB.display.label.1, HC01) %>%
   clean_names() %>% # need library(janitor)
-  transmute(county = str_trim(str_to_upper(str_remove_all(as.character(gct_stub_display_label_1), " County"))),
+  transmute(state = "OH",
+            county = str_trim(str_to_upper(str_remove_all(as.character(gct_stub_display_label_1), " County"))),
             median_income = as.numeric(as.character(hc01))) %>%
   slice(-1,-2)
 
@@ -169,13 +163,15 @@ income_data = rbind(wv_income_data, oh_income_data)
 
 ### Party affiliation
 ```{r}
-wv_pol_affiliation = read.csv("data/wv_politics.csv")
-oh_pol_affilitation = read.csv("data/oh_politics.csv") %>%
-  mutate(Political.affiliation = Party.affiliation,
-         State = str_trim(str_to_upper(State))) %>%
-  dplyr::select(-Party.affiliation) %>%
-  filter(State != "")
-
+wv_pol_affiliation = read.csv("data/wv_politics.csv") %>%
+  transmute(state = "WV",
+            county = State,
+            Political.affiliation = Political.affiliation)
+oh_pol_affilitation <- read.csv("data/oh_politics.csv") %>%
+  transmute(state = "OH",
+            county = State,
+            Political.affiliation = Party.affiliation) %>%
+  filter(county != "")
 pol_affiliation <- rbind(wv_pol_affiliation, oh_pol_affilitation)
   
 ```
@@ -188,29 +184,29 @@ arcos2012 <- arcos1 %>%
 
 # calculate total active weight in each county 2012
 all_act_wt <- arcos2012 %>%
-  group_by(BUYER_COUNTY) %>%
+  group_by(BUYER_STATE, BUYER_COUNTY) %>%
   summarise(all_active_wt = sum(TOTAL_ACTIVE_WT))
 
 # New Variable: % oxycodone and % hydrocodone in each count
 oxy_sum <- arcos2012%>%
   filter(DRUG_NAME == "OXYCODONE") %>%
-  group_by(BUYER_COUNTY) %>%
+  group_by(BUYER_STATE,BUYER_COUNTY) %>%
   summarise(oxy_wt = sum(TOTAL_ACTIVE_WT))
 head(oxy_sum)
 
 hyd_sum <- arcos2012%>%
   filter(DRUG_NAME == "HYDROCODONE") %>%
-  group_by(BUYER_COUNTY) %>%
+  group_by(BUYER_STATE,BUYER_COUNTY) %>%
   summarise(hyd_wt = sum(TOTAL_ACTIVE_WT))
 head(hyd_sum)
 
-perc_drug <- merge(oxy_sum, hyd_sum, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", all.x = TRUE) %>%
+perc_drug <- merge(oxy_sum, hyd_sum, by.x = c("BUYER_STATE","BUYER_COUNTY"), by.y = c("BUYER_STATE","BUYER_COUNTY"), all.x = TRUE) %>%
   mutate(perc_oxy = round(oxy_wt/(oxy_wt+hyd_wt),3)*100,
          perc_hyd = 100-perc_oxy)
 
 # New Variable: most common distribution channel (by number of transactions) in each county
 most_common_dist <- arcos2012 %>%
-  group_by(BUYER_COUNTY) %>%
+  group_by(BUYER_STATE,BUYER_COUNTY) %>%
   summarise(perc_retail = sum(BUYER_TYPE== "RETAIL PHARMACY")/n(), 
             perc_chain = sum(BUYER_TYPE == "CHAIN PHARMACY")/n(),
             perc_practitioner = sum(BUYER_TYPE %in% c("PRACTITIONER", "PRACTITIONER-DW/100",
@@ -223,13 +219,13 @@ head(most_common_dist)
 
 # New Variable: number of pharmacies in each county that buy drugs from manufacturers
 pharm_num <- arcos2012 %>%
-  group_by(BUYER_COUNTY) %>%
+  group_by(BUYER_STATE,BUYER_COUNTY) %>%
   summarise(pharmacy_num = n_distinct(BUYER_ADDRESS))
 head(pharm_num)
 
 # New Variable: market dominance, "yes" - if two pharmarcies in a county account for more than 50% of total active weight of drugs
 market_dom <- arcos2012 %>%
-  group_by(BUYER_COUNTY, BUYER_ADDRESS) %>%
+  group_by(BUYER_STATE,BUYER_COUNTY, BUYER_ADDRESS) %>%
   summarise(pharm_wt = sum(TOTAL_ACTIVE_WT)) %>%
   mutate(market_share = round(pharm_wt/sum(pharm_wt),3)*100) %>%
   arrange(BUYER_COUNTY, desc(market_share)) %>%
@@ -245,13 +241,17 @@ for(county in unique(market_dom$BUYER_COUNTY)){
     market_dom$dominance[index] <- "Yes"}
 }
 market_dom2 <- market_dom %>%
-  select(BUYER_COUNTY, dominance) %>%
+  select(BUYER_STATE,BUYER_COUNTY, dominance) %>%
   distinct()
 ```
-
-#### EACH ROW OF oh_wv_all IS STILL A TRANSACTION
-
 ```{r}
+
+```
+
+#### EACH ROW OF oh_wv_all IS STILL A TRANSACTION 
+
+#### there is problem with this merger - two counties in different states might have the same name
+```{r eval=FALSE}
 # merge arcos1 and death1
 arcos_and_death <- merge(arcos1, death1, by.x = c("BUYER_COUNTY", "Year"), by.y = c("COUNTY", "Year"), all.x = TRUE)
 # merge income with arcos and death data
@@ -273,36 +273,35 @@ oh_wv_all = merge(all0, TAWICPP, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", a
 #### EACH ROW IS A COUNTY
 ```{r}
 # recreate new arcos dataset - 2012 data with relevant variables
-arcos2.1 <- merge(all_act_wt, perc_drug, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", all.x = TRUE)
-arcos2.2 <- merge(arcos2.1, most_common_dist, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", all.x = TRUE)
-arcos2.3 <- merge(arcos2.2, pharm_num, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", all.x = TRUE)
-arcos_county <- merge(arcos2.3, market_dom2, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", all.x = TRUE)
+arcos2.1 <- merge(all_act_wt, perc_drug, by.x = c("BUYER_STATE","BUYER_COUNTY"), by.y = c("BUYER_STATE", "BUYER_COUNTY"), all.x = TRUE)
+arcos2.2 <- merge(arcos2.1, most_common_dist, by.x = c("BUYER_STATE","BUYER_COUNTY"), by.y = c("BUYER_STATE", "BUYER_COUNTY"), all.x = TRUE)
+arcos2.3 <- merge(arcos2.2, pharm_num, by.x = c("BUYER_STATE","BUYER_COUNTY"), by.y = c("BUYER_STATE", "BUYER_COUNTY"), all.x = TRUE)
+arcos_county <- merge(arcos2.3, market_dom2, by.x = c("BUYER_STATE","BUYER_COUNTY"), by.y = c("BUYER_STATE", "BUYER_COUNTY"), all.x = TRUE)
 
 death2012 <- death1 %>%
   filter(Year == "2012")
   
 # merge arcos_county and death2012
-arcos_and_death2012 <- merge(arcos_county, death2012, by.x ="BUYER_COUNTY", 
-                             by.y = "COUNTY", all.x = TRUE) %>%
+arcos_and_death2012 <- merge(arcos_county, death2012, by.x = c("BUYER_STATE","BUYER_COUNTY"), by.y = c("STATE", "COUNTY"), all.x = TRUE) %>%
   select(-FIPS)
+
 # merge income with arcos_county and death2012 and income data
 arcos_death_and_income2012 = merge(arcos_and_death2012, income_data, 
-                                   by.x = "BUYER_COUNTY", by.y = "county", all.x = TRUE)
+                                   by.x = c("BUYER_STATE", "BUYER_COUNTY"), by.y = c("state", "county"), all.x = TRUE)
 
 # merge arcos_death_and_income2012 with policatal affiliation data
 all2012 = merge(arcos_death_and_income2012, pol_affiliation, 
-                by.x = "BUYER_COUNTY", by.y = "State", all.x = TRUE)
+                by.x = c("BUYER_STATE", "BUYER_COUNTY"), by.y = c("state","county"), all.x = TRUE)
 
 # merge with population data, create total active weight in county per person
 oh_wv_2012 <- all2012 %>%
-  mutate(act_wt_person_county = all_active_wt/Population,
-         political_aff = Political.affiliation)
-head(oh_wv_2012)
+  mutate(act_wt_person_county = all_active_wt/Population)
+
 ```
 
 ```{r}
 # export oh_wv_all and oh_wv_2012 to csv file
-write_csv(oh_wv_all, "oh_wv_all.csv")
+#write_csv(oh_wv_all, "oh_wv_all.csv")
 write_csv(oh_wv_2012, "oh_wv_2012.csv")
 ```
 
