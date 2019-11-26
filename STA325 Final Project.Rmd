@@ -302,8 +302,8 @@ head(oh_wv_2012)
 
 ```{r}
 # export oh_wv_all and oh_wv_2012 to csv file
-write_csv(oh_wv_all, "oh_wv_all")
-write_csv(oh_wv_2012, "oh_wv_2012")
+write_csv(oh_wv_all, "oh_wv_all.csv")
+write_csv(oh_wv_2012, "oh_wv_2012.csv")
 ```
 
 ## Exploratory Data Analysis
