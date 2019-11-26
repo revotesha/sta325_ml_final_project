@@ -218,21 +218,21 @@ oh_wv_all = merge(wv_all0, TAWICPP, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY"
 ## Exploratory Data Analysis
 
 ```{r}
-wt_p = ggplot(wv_all, aes(x = TOTAL_ACTIVE_WT)) +
+wt_p = ggplot(oh_wv_all, aes(x = TOTAL_ACTIVE_WT)) +
   geom_histogram() +
   labs(x = "Total Active Weight")
-twt_p = ggplot(wv_all, aes(x = log(TOTAL_ACTIVE_WT))) +
+twt_p = ggplot(oh_wv_all, aes(x = log(TOTAL_ACTIVE_WT))) +
   geom_histogram() +
   labs(x = "Log of Total Active Weight")
 plot_grid(wt_p, twt_p)
-du_p = ggplot(wv_all, aes(x = DOSAGE_UNIT)) +
+du_p = ggplot(oh_wv_all, aes(x = DOSAGE_UNIT)) +
   geom_histogram() +
   labs(x = "Dosage Unit")
-tdu_p = ggplot(wv_all, aes(x = log(DOSAGE_UNIT))) +
+tdu_p = ggplot(oh_wv_all, aes(x = log(DOSAGE_UNIT))) +
   geom_histogram() +
   labs(x = "Log Dosage Unit")
 plot_grid(du_p, tdu_p)
-ds_p = ggplot(wv_all, aes(x = DOS_STR)) +
+ds_p = ggplot(oh_wv_all, aes(x = DOS_STR)) +
   geom_histogram() +
   labs(x = "Dosage Strength")
 ds_p
@@ -240,7 +240,7 @@ ds_p
 
 Average active weight of drugs per person by county plotted on a map and compared to opioids deaths by county.
 ```{r}
-ggplot(data = wv_all) +
+ggplot(data = oh_wv_all) +
   geom_point(aes(x = act_wt_person_county, y = est_death_rate_cat)) +
   labs(x = "Total Active Weight of Drug Per Person 2006-2012",
        y = "Total Overdose Death Rate in a County 2006-2012")
@@ -248,7 +248,7 @@ ggplot(data = wv_all) +
 
 Relationship between number of manufacturers/distributors shipping to a county vs opioid deaths by county.
 ```{r}
-wv_all %>%
+oh_wv_all %>%
   group_by(REPORTER_NAME, est_death_rate_cat, BUYER_COUNTY) %>%
   summarise(number_of_reporters = n()) %>%
   group_by(BUYER_COUNTY, est_death_rate_cat) %>%
@@ -262,7 +262,7 @@ wv_all %>%
 Number of manufacturers/distributors shipping to a county vs amount of opioids in active weight ordered by 
 pharmacies in the county.
 ```{r}
-wv_all %>%
+oh_wv_all %>%
   group_by(REPORTER_NAME, TOTAL_ACTIVE_WT, BUYER_COUNTY) %>%
   summarise(number_of_reporters = n()) %>%
   group_by(BUYER_COUNTY) %>%
@@ -276,12 +276,12 @@ wv_all %>%
 
 Average active weight of drugs per person vs number of pharmacies per 10,000 people.
 ```{r}
-pharmacies = wv_all %>%
+pharmacies = oh_wv_all %>%
   distinct(BUYER_ADDRESS, .keep_all = TRUE) %>%
   group_by(BUYER_COUNTY) %>%
   summarize(number_of_pharmacies = n(), Population = first(Population))
 
-active_weight = wv_all %>%
+active_weight = oh_wv_all %>%
   group_by(BUYER_COUNTY) %>%
   distinct(act_wt_person_county, .keep_all = TRUE) %>%
   ungroup() %>%
