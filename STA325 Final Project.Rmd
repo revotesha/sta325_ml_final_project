@@ -9,7 +9,6 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(readr)
-library(janitor)
 library(cowplot)
 library(janitor)
 set.seed(10)
