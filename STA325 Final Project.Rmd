@@ -264,7 +264,8 @@ all0 = merge(arcos_death_and_income, pol_affiliation, by.x = "BUYER_COUNTY", by.
 TAWICPP <- all0 %>%
   group_by(BUYER_COUNTY) %>%
   summarise(county_total_wt=sum(TOTAL_ACTIVE_WT), Population=first(Population)) %>%
-  mutate(act_wt_person_county = county_total_wt/Population)
+  mutate(act_wt_person_county = county_total_wt/Population) %>%
+  dplyr::select(-Population)
 
 oh_wv_all = merge(all0, TAWICPP, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", all.x = TRUE) %>%
   filter(Year == 2012) %>% # only consider 2012
@@ -303,8 +304,8 @@ head(oh_wv_2012)
 
 ```{r}
 # export oh_wv_all and oh_wv_2012 to csv file
-write_csv(oh_wv_all, "oh_wv_all.csv")
-write_csv(oh_wv_2012, "oh_wv_2012.csv")
+write_csv(oh_wv_all, "data/oh_wv_all.csv")
+write_csv(oh_wv_2012, "data/oh_wv_2012.csv")
 ```
 
 ## Exploratory Data Analysis
