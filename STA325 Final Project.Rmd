@@ -562,7 +562,7 @@ head(arcos2)
 m.c_r.e_model = brm(est_death_rate_cat ~  DRUG_NAME + QUANTITY + TOTAL_ACTIVE_WT + DOSAGE_UNIT +
                         DOS_STR + EQU_MORPHINE + State + Population + median_income + Political.affiliation + county_total_wt +
                         act_wt_person_county + (1|BUYER_COUNTY) + (1|REPORTER_NAME) + (1|MANUFACTURER), data = oh_wv_all, chains = 1, family = "cumulative",
-                    iter = 2, warmup = 0)
+                    iter = 2, warmup = 0) # iter should be big.
 ```
 
 ```{r}
