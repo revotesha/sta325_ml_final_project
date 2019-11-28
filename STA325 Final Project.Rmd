@@ -11,6 +11,7 @@ library(tidyverse)
 library(readr)
 library(cowplot)
 library(janitor)
+library(brms)
 set.seed(10)
 ```
 
@@ -80,11 +81,12 @@ death1 <- death0 %>%
 
 ```{r}
 death1 %>%
-  dplyr::select(Year, est_death_rate_cat) %>%
+  dplyr::select(Year, est_death_rate_cat,COUNTY) %>%
   mutate(Year = as.factor(Year),
          est_death_rate_cat = as.factor(est_death_rate_cat)) %>%
   ggplot(., aes(x = Year, fill = est_death_rate_cat)) +
-  geom_bar(position=position_dodge())
+  geom_bar(position=position_dodge()) # +
+  # facet_grid(as.factor(COUNTY) ~.)
 ```
 
 ### Arcos dataset
@@ -309,6 +311,7 @@ write_csv(oh_wv_2012, "data/oh_wv_2012.csv")
 
 ## Exploratory Data Analysis
 
+### Distribution of Variables (and possible transformations):
 ```{r}
 wt_p = ggplot(oh_wv_all, aes(x = TOTAL_ACTIVE_WT)) +
   geom_histogram() +
@@ -316,18 +319,123 @@ wt_p = ggplot(oh_wv_all, aes(x = TOTAL_ACTIVE_WT)) +
 twt_p = ggplot(oh_wv_all, aes(x = log(TOTAL_ACTIVE_WT))) +
   geom_histogram() +
   labs(x = "Log of Total Active Weight")
+
 plot_grid(wt_p, twt_p)
+
+#############################################################
 du_p = ggplot(oh_wv_all, aes(x = DOSAGE_UNIT)) +
   geom_histogram() +
   labs(x = "Dosage Unit")
 tdu_p = ggplot(oh_wv_all, aes(x = log(DOSAGE_UNIT))) +
   geom_histogram() +
   labs(x = "Log Dosage Unit")
+
 plot_grid(du_p, tdu_p)
+
+###############################################################
 ds_p = ggplot(oh_wv_all, aes(x = DOS_STR)) +
   geom_histogram() +
   labs(x = "Dosage Strength")
+
 ds_p
+
+###############################################################
+
+alawt_p = ggplot(oh_wv_2012, aes(x = log(all_active_wt))) +
+  geom_histogram() +
+  labs(x = "Log Total Active Weight")
+
+talawt_p = ggplot(oh_wv_2012, aes(x = all_active_wt)) +
+  geom_histogram() +
+  labs(x = "Total Active Weight")
+
+plot_grid(talawt_p, alawt_p)
+
+################################################################
+
+alawt_p = ggplot(oh_wv_2012, aes(x = log(all_active_wt))) +
+  geom_histogram() +
+  labs(x = "Total Active Weight")
+
+talawt_p = ggplot(oh_wv_2012, aes(x = all_active_wt)) +
+  geom_histogram() +
+  labs(x = "Total Active Weight")
+
+plot_grid(talawt_p, alawt_p)
+
+##################################################################
+
+oxy_wt_p = ggplot(oh_wv_2012, aes(x = oxy_wt)) +
+  geom_histogram() +
+  labs(x = "Total Active Weight")
+
+toxy_wt_p = ggplot(oh_wv_2012, aes(x = log(oxy_wt))) +
+  geom_histogram() +
+  labs(x = "Total Active Weight")
+
+plot_grid(oxy_wt_p, toxy_wt_p)
+
+
+##################################################################
+oxy_wt_p = ggplot(oh_wv_2012, aes(x = oxy_wt)) +
+  geom_histogram() +
+  labs(x = "Total Active Weight for Oxycodone")
+
+toxy_wt_p = ggplot(oh_wv_2012, aes(x = log(oxy_wt))) +
+  geom_histogram() +
+  labs(x = "Log Total Active Weight for Oxycodone")
+
+plot_grid(oxy_wt_p, toxy_wt_p)
+
+
+##################################################################
+hyd_wt_p = ggplot(oh_wv_2012, aes(x = hyd_wt)) +
+  geom_histogram() +
+  labs(x = "Total Active Weight for Hydrocodone")
+
+thyd_wt_p = ggplot(oh_wv_2012, aes(x = log(hyd_wt))) +
+  geom_histogram() +
+  labs(x = "Log Total Active Weight for Hydrocodone")
+
+plot_grid(hyd_wt_p, thyd_wt_p)
+
+##################################################################
+hyd_wt_p = ggplot(oh_wv_2012, aes(x = hyd_wt)) +
+  geom_histogram() +
+  labs(x = "Total Active Weight for Hydrocodone")
+
+thyd_wt_p = ggplot(oh_wv_2012, aes(x = log(hyd_wt))) +
+  geom_histogram() +
+  labs(x = "Log Total Active Weight for Hydrocodone")
+
+plot_grid(hyd_wt_p, thyd_wt_p)
+
+### ETC ...
+```
+
+### Predictors vs. Response:
+
+I think we also need EDA for relatinship between EACH predictor and response -- to help
+justify how we treat each variable.
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
 ```
 
 Average active weight of drugs per person by county plotted on a map and compared to opioids deaths by county.
@@ -389,14 +497,44 @@ geom_point() +
 labs(x = "Avg. active weight of drugs per person", y = "Number of pharmacies")
 ```
 
-Distribution of oxycodone and hydrocodone.
+<!-- Distribution of oxycodone and hydrocodone. -->
+<!-- ```{r} -->
+<!-- ``` -->
+
+<!-- Average active weight of drugs per person vs strength of dose. -->
+<!-- ```{r} -->
+<!-- # someone has code for this I think -->
+<!-- ``` -->
+
+### Interactions:
 ```{r}
+I1 = ggplot(data=oh_wv_all, aes(x= median_income ,y=est_death_rate_cat,color=as.factor(Political.affiliation))) +
+  geom_smooth(method="lm", se=FALSE) +
+  labs(title="Income vs Death Rate",
+       x=" Median Income", y="Death Rate (Categorical)",
+       color="Political Affiliation")
+
+I2 = ggplot(data=oh_wv_2012, aes(x= pharmacy_num ,y=median_income ,color= Political.affiliation)) +
+  geom_smooth(method="lm", se=FALSE) +
+  labs(title="Median Income vs Number of Pharmacies", 
+       x=" Number of Pharmacies", y="Median Income",
+       color="Political Affiliation")
+
+I3 <- ggplot(data=oh_wv_2012, aes(x= pharmacy_num ,y=est_death_rate_cat ,color= Political.affiliation)) +
+  geom_smooth(method="lm", se=FALSE) +
+  labs(title="Number of Pharmacies vs Death Rate", 
+       x=" Number of Pharmacies", y="Estimated Death Rate",
+       color="Political Affiliation")
+
+I4 = ggplot(data=oh_wv_2012, aes(x= act_wt_person_county ,y=est_death_rate_cat ,color= dominance)) +
+  geom_smooth(method="lm", se=FALSE) +
+  labs(title="Active Drug Weight PP in a County vs Death Rate", 
+       x="Active Drug Weight P", y="Estimated Death Rate",
+       color="Market Dominance")
+
+plot_grid(I1, I2, I3, I4)
 ```
 
-Average active weight of drugs per person vs strength of dose.
-```{r}
-# someone has code for this I think
-```
 
 ```{r}
 # total active weight by county and drug name
@@ -407,4 +545,27 @@ head(arcos2)
 ```
 
 
+
+## Modeling (sorry I know there is a bit to do before this -- i was thinking about it and decided to write it down)
+```{r}
+# An example of what a mixed-effects model would look like (I don't think we need it,
+# thought, especially if we don't use report name or manufacturer in our model or
+# if we are interested in seeing the effects these two variables have on death
+# rates). The reason we would want random effects is because the variables have
+# too many levels to look at.
+
+# Stuff looking like (1|...) are random effects. Everything else is 'fixed'.
+
+# If you remove the random effect, this is just a standard multicategorical
+# regression (bayesian approach though).
+
+m.c_r.e_model = brm(est_death_rate_cat ~  DRUG_NAME + QUANTITY + TOTAL_ACTIVE_WT + DOSAGE_UNIT +
+                        DOS_STR + EQU_MORPHINE + State + Population + median_income + Political.affiliation + county_total_wt +
+                        act_wt_person_county + (1|BUYER_COUNTY) + (1|REPORTER_NAME) + (1|MANUFACTURER), data = oh_wv_all, chains = 1, family = "cumulative",
+                    iter = 2, warmup = 0)
+```
+
+```{r}
+summary(m.c_r.e_model)
+```
 
