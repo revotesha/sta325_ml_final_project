@@ -161,7 +161,6 @@ income_data = rbind(wv_income_data, oh_income_data)
 
 ### Party affiliation
 ```{r}
-<<<<<<< HEAD
 wv_pol_affiliation <- read.csv("data/wv_politics.csv") %>%
   mutate(County = as.character(State),
          County = ifelse(County == "TAYLOR,", "TAYLOR", County),
@@ -178,21 +177,6 @@ oh_pol_affilitation <- read.csv("data/oh_politics.csv") %>%
                                County))) %>%
   select(-State, -Party.affiliation)
 
-=======
-wv_pol_affiliation = read.csv("data/wv_politics.csv") %>%
-  mutate(State = as.character(State),
-         State = ifelse(State == "TAYLOR,", "TAYLOR", State),
-         State = as.factor(ifelse(State %in% common_names, paste0(State, "_WV"),
-                               State)))
-oh_pol_affilitation = read.csv("data/oh_politics.csv") %>%
-  mutate(Political.affiliation = Party.affiliation,
-         State = str_trim(str_to_upper(State))) %>%
-  dplyr::select(-Party.affiliation) %>%
-  filter(State != "") %>%
-  mutate(State = as.character(State),
-         State = as.factor(ifelse(State %in% common_names, paste0(State, "_OH"),
-                               State)))
->>>>>>> a78bbcbcda4c100550ee5a59403b76c0e8aa95ae
 pol_affiliation <- rbind(wv_pol_affiliation, oh_pol_affilitation)
 ```
 
@@ -201,24 +185,26 @@ pol_affiliation <- rbind(wv_pol_affiliation, oh_pol_affilitation)
 # arcos collapse by county, create relevant variables, only consider 2012
 arcos2012 <- arcos1 %>%
   filter(Year == "2012")
+
 # calculate total active weight in each county 2012
 all_act_wt <- arcos2012 %>%
   group_by(BUYER_COUNTY) %>%
   summarise(all_active_wt = sum(TOTAL_ACTIVE_WT))
+
 # New Variable: % oxycodone and % hydrocodone in each count
 oxy_sum <- arcos2012%>%
   filter(DRUG_NAME == "OXYCODONE") %>%
   group_by(BUYER_COUNTY) %>%
   summarise(oxy_wt = sum(TOTAL_ACTIVE_WT))
-# head(oxy_sum)
 hyd_sum <- arcos2012%>%
   filter(DRUG_NAME == "HYDROCODONE") %>%
   group_by(BUYER_COUNTY) %>%
   summarise(hyd_wt = sum(TOTAL_ACTIVE_WT))
-# head(hyd_sum)
+
 perc_drug <- merge(oxy_sum, hyd_sum, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", all.x = TRUE) %>%
   mutate(perc_oxy = round(oxy_wt/(oxy_wt+hyd_wt),3)*100,
          perc_hyd = 100-perc_oxy)
+
 # New Variable: most common distribution channel (by number of transactions) in each county
 most_common_dist <- arcos2012 %>%
   group_by(BUYER_COUNTY) %>%
@@ -230,16 +216,11 @@ most_common_dist <- arcos2012 %>%
     perc_retail >= perc_chain & perc_retail >= perc_practitioner ~ "RETAIL PHARMACY",
     perc_chain >=  perc_retail & perc_chain >= perc_practitioner ~ "CHAIN PHARMACY",
     TRUE ~ "PRACTITIONER")) 
-<<<<<<< HEAD
 
-=======
-# head(most_common_dist)
->>>>>>> a78bbcbcda4c100550ee5a59403b76c0e8aa95ae
 # New Variable: number of pharmacies in each county that buy drugs from manufacturers
 pharm_num <- arcos2012 %>%
   group_by(BUYER_COUNTY) %>%
   summarise(pharmacy_num = n_distinct(BUYER_ADDRESS))
-<<<<<<< HEAD
 
 # New Variable: number of drug manufacturers/distributers that supply drugs to local pharmacies
 num_of_distr <- arcos2012 %>%
@@ -248,9 +229,6 @@ num_of_distr <- arcos2012 %>%
   group_by(BUYER_COUNTY) %>%
   summarise(distr_num = sum(dist_num))
 
-=======
-# head(pharm_num)
->>>>>>> a78bbcbcda4c100550ee5a59403b76c0e8aa95ae
 # New Variable: market dominance, "yes" - if two pharmarcies in a county account for more than 50% of total active weight of drugs
 market_dom <- arcos2012 %>%
   group_by(BUYER_COUNTY, BUYER_ADDRESS) %>%
@@ -299,13 +277,9 @@ oh_wv_all = merge(all0, TAWICPP, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", a
 arcos2.1 <- merge(all_act_wt, perc_drug, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", all.x = TRUE)
 arcos2.2 <- merge(arcos2.1, most_common_dist, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", all.x = TRUE)
 arcos2.3 <- merge(arcos2.2, pharm_num, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", all.x = TRUE)
-<<<<<<< HEAD
 arcos2.4 <- merge(arcos2.3, num_of_distr, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", all.x = TRUE)
 arcos_county <- merge(arcos2.4, market_dom2, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", all.x = TRUE)
 
-=======
-arcos_county <- merge(arcos2.3, market_dom2, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", all.x = TRUE)
->>>>>>> a78bbcbcda4c100550ee5a59403b76c0e8aa95ae
 death2012 <- death1 %>%
   filter(Year == "2012")
   
@@ -320,19 +294,7 @@ arcos_death_and_income2012 <- merge(arcos_and_death2012, income_data,
 # merge arcos_death_and_income2012 with policatal affiliation data
 all2012 = merge(arcos_death_and_income2012, pol_affiliation, 
                 by.x = "BUYER_COUNTY", by.y = "State", all.x = TRUE)
-<<<<<<< HEAD
 
-=======
-# number of distributors per 10,000 thousand people in a county
-num_of_distr_ptt = oh_wv_all %>%
-  group_by(BUYER_COUNTY, REPORTER_NAME) %>%
-  summarise(number_of_distributor = 1, Population = first(Population)) %>%
-  ungroup() %>%
-  group_by(BUYER_COUNTY) %>%
-  summarise(number_of_distributor = n(), Population = first(Population)) %>%
-  mutate(number_of_distributors_ptt = (10000*number_of_distributor)/Population) %>%
-  dplyr::select(-c(Population, BUYER_COUNTY))
->>>>>>> a78bbcbcda4c100550ee5a59403b76c0e8aa95ae
 # merge with population data, create total active weight in county per person
 oh_wv_2012 <- all2012 %>%
   mutate(act_wt_person_county = all_active_wt/Population,
@@ -340,13 +302,7 @@ oh_wv_2012 <- all2012 %>%
          pharmacy_num_ptt = round((10000*pharmacy_num/Population),3),
          distr_num_ptt = round((10000*distr_num/Population),3),
          most_dist_channel = as.factor(most_dist_channel),
-<<<<<<< HEAD
          dominance = as.factor(dominance))
-=======
-         dominance = as.factor(dominance)) %>%
-  bind_cols(num_of_distr_ptt)
-View(oh_wv_2012$political_aff)
->>>>>>> a78bbcbcda4c100550ee5a59403b76c0e8aa95ae
 ```
 
 ```{r}
