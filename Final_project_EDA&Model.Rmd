@@ -19,7 +19,7 @@ library(brms)
 set.seed(10)
 ```
 
-## Exploratory Data Analysis
+## Exploratory Data Analysis for oh_wv_2012 Dataset
 
 ### Training data
 ```{r}
