@@ -429,8 +429,71 @@ plot_grid(actwt_pp_plot, log_actwt_pp_plot)
 
 ### Predictors vs. Response:
 
-I think we also need EDA for relatinship between EACH predictor and response -- to help
+Responses: Death Rate and Income:
+
+I think we also need EDA for relationship between EACH predictor and response -- to help
 justify how we treat each variable.
+
+Response: Death Rate: (kinda messy since est_death_rate_cat is 'numerical' and categorical but also since nothing falls in between)
+```{r}
+oh_wv_2012 %>%
+  ggplot(mapping = aes(x = dominance, y = est_death_rate_cat)) + geom_boxplot() + xlab("Dominance") + ylab("Estimated Death Rate Category") 
+
+
+oh_wv_2012 %>%
+  ggplot(mapping = aes(x = Population, y = est_death_rate_cat)) + geom_point()+ xlab("Population") + ylab("Estimated Death Rate Category") 
+
+
+ggplot(mapping = aes(x = Political.affiliation, y = est_death_rate_cat), data = oh_wv_2012) + geom_boxplot() + xlab("Political Affiliation") + ylab("Estimated Death Rate Category")
+
+oh_wv_2012 %>%
+  ggplot(mapping = aes(x = dominance, y = est_death_rate_cat)) + geom_boxplot() + xlab("Dominance") + ylab("Estimated Death Rate Category") 
+
+oh_wv_2012 %>%
+  ggplot(mapping = aes(x = pharmacy_num, y = est_death_rate_cat)) + geom_point() + xlab("Number of Pharmacies") + ylab("Estimated Death Rate Category") 
+
+oh_wv_2012 %>%
+  ggplot(mapping = aes(x = all_active_wt, y = est_death_rate_cat)) + geom_point() + xlab("Active weight total") + ylab("Estimated Death Rate Category") 
+
+oh_wv_2012 %>%
+  ggplot(mapping = aes(x = most_dist_channel, y = est_death_rate_cat)) + geom_boxplot() + xlab("Most Distributed Channel") + ylab("Estimated Death Rate Category") 
+  
+```
+
+Focus on Median Income here:
+
+```{r}
+oh_wv_2012 %>%
+  ggplot(mapping = aes(x = Political.affiliation, y = median_income)) + geom_boxplot() + xlab("Political Affiliation") + ylab("Median Income")
+
+oh_wv_2012 %>%
+  ggplot(mapping = aes(x = dominance, y = median_income)) + geom_boxplot() + xlab("Dominance") + ylab("Median Income")
+
+
+oh_wv_2012 %>%
+  ggplot(mapping = aes(x = all_active_wt , y = median_income)) + geom_point()  + xlab("All Active Weight") + ylab("Median Income")
+
+med_inc_mod3 <- lm(median_income ~ all_active_wt, data = oh_wv_2012)
+plot(med_inc_mod3)
+
+
+oh_wv_2012 %>%
+  ggplot(mapping = aes(x = most_dist_channel , y = median_income)) +  geom_boxplot()  + xlab(" Most Distributed Channel") + ylab("Median Income")
+
+oh_wv_2012 %>%
+  ggplot(mapping = aes(x = pharmacy_num , y = median_income)) + geom_point()  + xlab("Number of Pharamacies") + ylab("Median Income")
+
+med_inc_mod6 <- lm(median_income ~ pharmacy_num, data = oh_wv_2012)
+plot(med_inc_mod6)
+
+
+oh_wv_2012 %>%
+  ggplot(mapping = aes(x = Population , y = median_income)) + geom_point()  + xlab("Population") + ylab("Median Income")
+
+med_inc_mod7 <- lm(median_income ~ Population, data = oh_wv_2012)
+plot(med_inc_mod7)
+
+```
 
 ```{r}
 ```
