@@ -1,6 +1,6 @@
 ---
-title: "STA325 Final Project-data wrangling"
-author: "Alice Liao, Revo Tesha, Salvador, Cindy, Evelyn"
+title: "STA325 Final Project"
+author: "Alice Liao, Revo Tesha, Salvador, Cindy, Evelyn "
 date: "10/7/2019"
 output: html_document
 ---
@@ -14,8 +14,8 @@ library(janitor)
 library(nnet)
 library(caret)
 library(broom)
-#library(tree)
-#library(brms)
+library(tree)
+library(brms)
 set.seed(10)
 ```
 
@@ -25,18 +25,15 @@ set.seed(10)
 ```{r}
 common_names = c("WAYNE", "MARION","HANCOCK", "WOOD", "JEFFERSON", "LOGAN", 
                  "PUTNAM", "MERCER", "FAYETTE", "HARRISON", "JACKSON", "MONROE","MORGAN" )
-
 # load original dataset
 death.wv = read.csv("data/Drug_Poisoning_Mortality_by_County.csv", header = TRUE) %>%
   mutate(COUNTY = str_to_upper(str_replace_all(County, " County, WV", "")),
         COUNTY = as.factor(ifelse(COUNTY %in% common_names, paste0(COUNTY, "_WV"), COUNTY)))
-
 death.oh = read.csv("data/NCHS_-_Drug_Poisoning_Mortality_by_County__United_Statesoh.csv", 
                      header = TRUE, as.is = TRUE) %>%
   mutate(Population = as.numeric(gsub(",", "", Population, fixed=TRUE)),
          COUNTY = str_to_upper(str_replace_all(County, " County, OH", "")),
          COUNTY = as.factor(ifelse(COUNTY %in% common_names, paste0(COUNTY, "_OH"), COUNTY)))
-
 death0 =  rbind(death.wv, death.oh) %>%
     rename(est_death_rate = Estimated.Age.adjusted.Death.Rate..16.Categories..in.ranges.)
 # est_death_rate is age adjusted death rate, deaths per 100,000 U.S. standard population for 2000
@@ -46,7 +43,6 @@ death0 =  rbind(death.wv, death.oh) %>%
 # data cleaning
 thirty_plus = which(death0$est_death_rate == "30+")
 imputed_deaths = as.character(death0$est_death_rate)
-
 for(idx in thirty_plus){
   random_death_rate = round(runif(1, 30, 957), 0) # this works now but I think we could
   # also use another (truncated) distribution that reflects distribution of adjusted death rates in
@@ -54,7 +50,6 @@ for(idx in thirty_plus){
   new_interval = paste0(random_death_rate, "-", random_death_rate)
   imputed_deaths[idx] = as.character(new_interval)
 }
-
 death0$imput_est_death_rate_num = imputed_deaths
 death0$imput_est_death_rate_cat = as.factor(imputed_deaths)
 death1 <- death0 %>%
@@ -104,12 +99,10 @@ arcos0a = read.csv("arcos-wv-statewide-itemizedexcel.csv", header = TRUE) %>%
   mutate(BUYER_COUNTY = as.character(BUYER_COUNTY),
          BUYER_COUNTY = as.factor(ifelse(BUYER_COUNTY %in% common_names, paste0(BUYER_COUNTY, "_WV"),
                                BUYER_COUNTY)))
-
 acros0b = read_tsv("arcos-oh-statewide-itemized.tsv", col_names = TRUE) %>%
   mutate(BUYER_COUNTY = as.character(BUYER_COUNTY),
          BUYER_COUNTY = as.factor(ifelse(BUYER_COUNTY %in% common_names, paste0(BUYER_COUNTY, "_OH"),
                                BUYER_COUNTY)))
-
 # create subset with less variables
 arcos1 <- rbind(arcos0a, acros0b) %>%
   transmute(Year = as.numeric(str_sub(TRANSACTION_DATE, -4, -1)),
@@ -142,22 +135,18 @@ death1 %>%
   facet_wrap(. ~ COUNTY) +
   geom_col(aes(x = Year, y = Population)) +
   labs(title = "County Population from 2006 - 2012, WV") # population is almost constant over the seven years
-
 death1 %>%
   ggplot()+
   facet_wrap(. ~ COUNTY) +
   geom_col(aes(x = Year, y = est_death_rate_cat)) +
   # geom_hline(yintercept = median(death_rate))+
   labs(title = "Drug-related Death Rate from 2006 - 2012, WV") # death rate in general has a upward trend
-
 # arcos original dataset EDA
 # total active weight by county and drug name
 arcos_wt_eda <- arcos1 %>%
   group_by(BUYER_COUNTY, Year) %>%
   summarise(active_wt_by_year = sum(TOTAL_ACTIVE_WT))
-
 # head(arcos_wt_eda)
-
 arcos_wt_eda %>%
   ggplot() +
   facet_wrap(. ~ BUYER_COUNTY) +
@@ -174,7 +163,6 @@ wv_income_data = read.csv("data/wv_median_household_income_data.csv") %>%
   dplyr::select(county, median_income) %>%
   mutate(county = as.factor(ifelse(county %in% common_names, paste0(county, "_WV"),
                                county)))
-
 oh_income_data = read.csv("data/ohio_median_household_income_data.csv") %>%
   dplyr::select(GCT_STUB.display.label.1, HC01) %>%
   clean_names() %>% # need library(janitor)
@@ -183,7 +171,6 @@ oh_income_data = read.csv("data/ohio_median_household_income_data.csv") %>%
   slice(-1,-2) %>%
   mutate(county = as.factor(ifelse(county %in% common_names, paste0(county, "_OH"),
                                county)))
-
 income_data = rbind(wv_income_data, oh_income_data)
 ```
 
@@ -194,7 +181,6 @@ wv_pol_affiliation = read.csv("data/wv_politics.csv") %>%
          State = ifelse(State == "TAYLOR,", "TAYLOR", State),
          State = as.factor(ifelse(State %in% common_names, paste0(State, "_WV"),
                                State)))
-
 oh_pol_affilitation = read.csv("data/oh_politics.csv") %>%
   mutate(Political.affiliation = Party.affiliation,
          State = str_trim(str_to_upper(State))) %>%
@@ -203,7 +189,6 @@ oh_pol_affilitation = read.csv("data/oh_politics.csv") %>%
   mutate(State = as.character(State),
          State = as.factor(ifelse(State %in% common_names, paste0(State, "_OH"),
                                State)))
-
 pol_affiliation <- rbind(wv_pol_affiliation, oh_pol_affilitation)
 ```
 
@@ -212,29 +197,24 @@ pol_affiliation <- rbind(wv_pol_affiliation, oh_pol_affilitation)
 # arcos collapse by county, create relevant variables, only consider 2012
 arcos2012 <- arcos1 %>%
   filter(Year == "2012")
-
 # calculate total active weight in each county 2012
 all_act_wt <- arcos2012 %>%
   group_by(BUYER_COUNTY) %>%
   summarise(all_active_wt = sum(TOTAL_ACTIVE_WT))
-
 # New Variable: % oxycodone and % hydrocodone in each count
 oxy_sum <- arcos2012%>%
   filter(DRUG_NAME == "OXYCODONE") %>%
   group_by(BUYER_COUNTY) %>%
   summarise(oxy_wt = sum(TOTAL_ACTIVE_WT))
 # head(oxy_sum)
-
 hyd_sum <- arcos2012%>%
   filter(DRUG_NAME == "HYDROCODONE") %>%
   group_by(BUYER_COUNTY) %>%
   summarise(hyd_wt = sum(TOTAL_ACTIVE_WT))
 # head(hyd_sum)
-
 perc_drug <- merge(oxy_sum, hyd_sum, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", all.x = TRUE) %>%
   mutate(perc_oxy = round(oxy_wt/(oxy_wt+hyd_wt),3)*100,
          perc_hyd = 100-perc_oxy)
-
 # New Variable: most common distribution channel (by number of transactions) in each county
 most_common_dist <- arcos2012 %>%
   group_by(BUYER_COUNTY) %>%
@@ -247,13 +227,11 @@ most_common_dist <- arcos2012 %>%
     perc_chain >=  perc_retail & perc_chain >= perc_practitioner ~ "CHAIN PHARMACY",
     TRUE ~ "PRACTITIONER")) 
 # head(most_common_dist)
-
 # New Variable: number of pharmacies in each county that buy drugs from manufacturers
 pharm_num <- arcos2012 %>%
   group_by(BUYER_COUNTY) %>%
   summarise(pharmacy_num = n_distinct(BUYER_ADDRESS))
 # head(pharm_num)
-
 # New Variable: market dominance, "yes" - if two pharmarcies in a county account for more than 50% of total active weight of drugs
 market_dom <- arcos2012 %>%
   group_by(BUYER_COUNTY, BUYER_ADDRESS) %>%
@@ -261,7 +239,6 @@ market_dom <- arcos2012 %>%
   mutate(market_share = round(pharm_wt/sum(pharm_wt),3)*100) %>%
   arrange(BUYER_COUNTY, desc(market_share)) %>%
   mutate(dominance = "No")
-
 for(county in unique(market_dom$BUYER_COUNTY)){
   index <- which(market_dom$BUYER_COUNTY == county)
   c.df <- market_dom %>%
@@ -287,13 +264,11 @@ arcos_death_and_income = merge(arcos_and_death, income_data, by.x = "BUYER_COUNT
 # merge arcos_death_and_income with policatal affiliation data
 all0 = merge(arcos_death_and_income, pol_affiliation, by.x = "BUYER_COUNTY", by.y = "State", all.x = TRUE)
 # merge with population data, create total active weight in county per person
-
 TAWICPP <- all0 %>%
   group_by(BUYER_COUNTY) %>%
   summarise(county_total_wt=sum(TOTAL_ACTIVE_WT), Population=first(Population)) %>%
   mutate(act_wt_person_county = county_total_wt/Population) %>%
   dplyr::select(-Population)
-
 oh_wv_all = merge(all0, TAWICPP, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", all.x = TRUE) %>%
   filter(Year == 2012) # %>% # only consider 2012
   # filter(!is.na(act_wt_person_county))
@@ -306,7 +281,6 @@ arcos2.1 <- merge(all_act_wt, perc_drug, by.x = "BUYER_COUNTY", by.y = "BUYER_CO
 arcos2.2 <- merge(arcos2.1, most_common_dist, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", all.x = TRUE)
 arcos2.3 <- merge(arcos2.2, pharm_num, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", all.x = TRUE)
 arcos_county <- merge(arcos2.3, market_dom2, by.x = "BUYER_COUNTY", by.y = "BUYER_COUNTY", all.x = TRUE)
-
 death2012 <- death1 %>%
   filter(Year == "2012")
   
@@ -317,11 +291,9 @@ arcos_and_death2012 <- merge(arcos_county, death2012, by.x ="BUYER_COUNTY",
 # merge income with arcos_county and death2012 and income data
 arcos_death_and_income2012 = merge(arcos_and_death2012, income_data, 
                                    by.x = "BUYER_COUNTY", by.y = "county", all.x = TRUE)
-
 # merge arcos_death_and_income2012 with policatal affiliation data
 all2012 = merge(arcos_death_and_income2012, pol_affiliation, 
                 by.x = "BUYER_COUNTY", by.y = "State", all.x = TRUE)
-
 # number of distributors per 10,000 thousand people in a county
 num_of_distr_ptt = oh_wv_all %>%
   group_by(BUYER_COUNTY, REPORTER_NAME) %>%
@@ -331,7 +303,6 @@ num_of_distr_ptt = oh_wv_all %>%
   summarise(number_of_distributor = n(), Population = first(Population)) %>%
   mutate(number_of_distributors_ptt = (10000*number_of_distributor)/Population) %>%
   dplyr::select(-c(Population, BUYER_COUNTY))
-
 # merge with population data, create total active weight in county per person
 oh_wv_2012 <- all2012 %>%
   mutate(act_wt_person_county = all_active_wt/Population,
@@ -340,7 +311,6 @@ oh_wv_2012 <- all2012 %>%
          most_dist_channel = as.factor(most_dist_channel),
          dominance = as.factor(dominance)) %>%
   bind_cols(num_of_distr_ptt)
-
 View(oh_wv_2012$political_aff)
 ```
 
@@ -348,4 +318,282 @@ View(oh_wv_2012$political_aff)
 # export oh_wv_all and oh_wv_2012 to csv file
 # write_csv(oh_wv_all, "data/oh_wv_all.csv")
 write_csv(oh_wv_2012, "data/oh_wv_2012.csv")
+```
+
+## Exploratory Data Analysis
+
+### Training data
+```{r}
+train = sample(max(dim(oh_wv_2012)), max(dim(oh_wv_2012))*0.75) # 75% training
+train_oh_wv_all = oh_wv_2012[train,]
+test_oh_wv_all = oh_wv_2012[-train,]
+```
+
+### Distribution of Variables (and possible transformations):
+
+```{r}
+# Dosage strength -- no transformation
+ds_p = ggplot(oh_wv_all, aes(x = DOS_STR)) +
+  geom_histogram() +
+  labs(x = "Dosage Strength")
+ds_p
+```
+
+```{r}
+# hydrocodone -- log transformation
+hyd_wt_p = ggplot(train_oh_wv_all, aes(x = hyd_wt)) +
+  geom_histogram() +
+  labs(x = "Total Active Weight for Hydrocodone")
+thyd_wt_p = ggplot(train_oh_wv_all, aes(x = log(hyd_wt))) +
+  geom_histogram() +
+  labs(x = "Log Total Active Weight for Hydrocodone")
+plot_grid(hyd_wt_p, thyd_wt_p)
+```
+
+```{r}
+# oxycodone -- log transformation
+oxy_wt_p = ggplot(train_oh_wv_all, aes(x = oxy_wt)) +
+  geom_histogram() +
+  labs(x = "Total Active Weight for Oxycodone")
+toxy_wt_p = ggplot(train_oh_wv_all, aes(x = log(oxy_wt))) +
+  geom_histogram() +
+  labs(x = "Log Total Active Weight for Oxycodone")
+plot_grid(oxy_wt_p, toxy_wt_p)
+```
+
+```{r}
+# number of distributors per 10,000 in a county -- log transformation
+ndptt_p = ggplot(train_oh_wv_all, aes(x = number_of_distributors_ptt)) +
+  geom_histogram() +
+  labs(x = "Number of Distributors per 10,000 in a County")
+tndptt_p = ggplot(train_oh_wv_all, aes(x = log(number_of_distributors_ptt))) +
+  geom_histogram() +
+  labs(x = "Log Number of Distributors per 10,000 in a County")
+plot_grid(ndptt_p, tndptt_p)
+```
+
+```{r}
+# number of pharmacies per 10,000 for a county -- no transformation necessary?
+nptt_p = ggplot(train_oh_wv_all, aes(x = pharmacy_num_ptt)) +
+  geom_histogram() +
+  labs(x = "Number of Pharmacies per 10,000 in a County")
+# tnptt_p = ggplot(train_oh_wv_all, aes(x = log(pharmacy_num_ptt))) +
+#   geom_histogram() +
+#   labs(x = "Log Number of Pharmacies per 10,000 in a County")
+# plot_grid(nptt_p, tnptt_p)
+```
+
+```{r}
+# pharma_num = ggplot(train_oh_wv_all, aes(x = pharmacy_num)) +
+#   geom_histogram() +
+#   labs(x = "Number of pharmacies")
+# 
+# log_pharma_num = ggplot(train_oh_wv_all, aes(x = log(pharmacy_num))) +
+#   geom_histogram() +
+#   labs(x = "Log Number of pharmacies")
+# median household income -- log transformation necessary?
+med_income = ggplot(train_oh_wv_all, aes(x = median_income)) +
+  geom_histogram() +
+  labs(x = "Median income")
+log_med_income = ggplot(train_oh_wv_all, aes(x = log(median_income))) +
+  geom_histogram() +
+  labs(x = "Log median income")
+plot_grid(med_income, log_med_income)
+```
+
+```{r}
+# active drug weight per person in a county -- log transformation necessary?
+actwt_pp_plot = ggplot(train_oh_wv_all, aes(x = act_wt_person_county)) +
+  geom_histogram() +
+  labs(x = "active weight per person")
+log_actwt_pp_plot = ggplot(train_oh_wv_all, aes(x = log(act_wt_person_county))) +
+  geom_histogram() +
+  labs(x = "Log active weight per person")
+plot_grid(actwt_pp_plot, log_actwt_pp_plot)
+```
+
+```{r}
+# # distribution channel -- looks ok I guess.
+# plot(train_oh_wv_all$most_dist_channel)
+```
+
+```{r}
+# # market dominance -- also looks ok I guess.
+# plot(train_oh_wv_all$dominance)
+```
+
+```{r}
+# # market dominance -- also looks ok I guess.
+# plot(train_oh_wv_all$political_aff)
+```
+
+### Predictors vs. Response:
+
+I think we also need EDA for relatinship between EACH predictor and response -- to help
+justify how we treat each variable.
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+Average active weight of drugs per person by county plotted on a map and compared to opioids deaths by county.
+```{r}
+ggplot(data = oh_wv_all) +
+  geom_point(aes(x = act_wt_person_county, y = est_death_rate_cat)) +
+  labs(x = "Total Active Weight of Drug Per Person 2006-2012",
+       y = "Total Overdose Death Rate in a County 2006-2012")
+```
+
+Relationship between number of manufacturers/distributors shipping to a county vs opioid deaths by county.
+```{r}
+oh_wv_all %>%
+  group_by(REPORTER_NAME, est_death_rate_cat, BUYER_COUNTY) %>%
+  summarise(number_of_reporters = n()) %>%
+  group_by(BUYER_COUNTY, est_death_rate_cat) %>%
+  summarise(number_of_reporters_for_given_county = sum(number_of_reporters)) %>%
+  ggplot(., aes(x = est_death_rate_cat, y = number_of_reporters_for_given_county)) +
+  geom_point() +
+  labs(x = "Average death rate of a county", y = "Number of manufacturers involved",
+       title = "Relationship between number of manufacturers and death rates in a county?")
+```
+
+Number of manufacturers/distributors shipping to a county vs amount of opioids in active weight ordered by 
+pharmacies in the county.
+```{r}
+oh_wv_all %>%
+  group_by(REPORTER_NAME, TOTAL_ACTIVE_WT, BUYER_COUNTY) %>%
+  summarise(number_of_reporters = n()) %>%
+  group_by(BUYER_COUNTY) %>%
+  summarise(number_of_reporters_for_given_county = sum(number_of_reporters),
+            total_active_drug_for_given_county = sum(TOTAL_ACTIVE_WT)) %>%
+  ggplot(., aes(x = total_active_drug_for_given_county, y = number_of_reporters_for_given_county)) +
+  geom_point() +
+  labs(x = "Total Active Drug Weight", y = "Number of manufacturers shipping to the county",
+       title = "Total active drug weight vs. number of manufacturers for that county")
+```
+
+Average active weight of drugs per person vs number of pharmacies per 10,000 people.
+```{r}
+pharmacies = oh_wv_all %>%
+  distinct(BUYER_ADDRESS, .keep_all = TRUE) %>%
+  group_by(BUYER_COUNTY) %>%
+  summarize(number_of_pharmacies = n(), Population = first(Population))
+active_weight = oh_wv_all %>%
+  group_by(BUYER_COUNTY) %>%
+  distinct(act_wt_person_county, .keep_all = TRUE) %>%
+  ungroup() %>%
+  dplyr::select(BUYER_COUNTY, act_wt_person_county)
+  
+pop_and_pharmacies = inner_join(active_weight, pharmacies) %>%
+  ###### someone check if this is how you calculate number of pharmacies per 10,000 ######
+  mutate(pharmacies_per_tt = (10000*number_of_pharmacies)/Population)
+  ########################################################################################
+ggplot(pop_and_pharmacies, aes(x = act_wt_person_county, y = pharmacies_per_tt)) +
+geom_point() +
+labs(x = "Avg. active weight of drugs per person", y = "Number of pharmacies")
+```
+
+<!-- Distribution of oxycodone and hydrocodone. -->
+<!-- ```{r} -->
+<!-- ``` -->
+
+<!-- Average active weight of drugs per person vs strength of dose. -->
+<!-- ```{r} -->
+<!-- # someone has code for this I think -->
+<!-- ``` -->
+
+### Interactions:
+```{r}
+I1 = ggplot(data=oh_wv_all, aes(x= median_income ,y=est_death_rate_cat,color=as.factor(Political.affiliation))) +
+  geom_smooth(method="lm", se=FALSE) +
+  labs(title="Income vs Death Rate",
+       x=" Median Income", y="Death Rate (Categorical)",
+       color="Political Affiliation")
+I2 = ggplot(data=train_oh_wv_all, aes(x= pharmacy_num ,y=median_income ,color= Political.affiliation)) +
+  geom_smooth(method="lm", se=FALSE) +
+  labs(title="Median Income vs Number of Pharmacies", 
+       x=" Number of Pharmacies", y="Median Income",
+       color="Political Affiliation")
+I3 <- ggplot(data=train_oh_wv_all, aes(x= pharmacy_num ,y=est_death_rate_cat ,color= Political.affiliation)) +
+  geom_smooth(method="lm", se=FALSE) +
+  labs(title="Number of Pharmacies vs Death Rate", 
+       x=" Number of Pharmacies", y="Estimated Death Rate",
+       color="Political Affiliation")
+I4 = ggplot(data=train_oh_wv_all, aes(x= act_wt_person_county ,y=est_death_rate_cat ,color= dominance)) +
+  geom_smooth(method="lm", se=FALSE) +
+  labs(title="Active Drug Weight PP in a County vs Death Rate", 
+       x="Active Drug Weight P", y="Estimated Death Rate",
+       color="Market Dominance")
+##########################################################################################################
+#### Active weight person vs death rates by percentage of hydrocodone and oxycodone -- @Cindy? ############
+##########################################################################################################
+plot_grid(I1, I2, I3, I4)
+```
+
+
+<!-- ```{r} -->
+<!-- # total active weight by county and drug name -->
+<!-- arcos2 <- arcos1 %>% -->
+<!--   group_by(BUYER_COUNTY,DRUG_NAME) %>% -->
+<!--   summarise(all_active_wt = sum(TOTAL_ACTIVE_WT))  -->
+<!-- head(arcos2) -->
+<!-- ``` -->
+
+
+## Modeling
+```{r}
+set.seed(12)
+### Bayesian cumulative mixed-effects model:
+# An example of what a mixed-effects model would look like (I don't think we need it,
+# thought, especially if we don't use report name or manufacturer in our model or
+# if we are interested in seeing the effects these two variables have on death
+# rates). The reason we would want random effects is because the variables have
+# too many levels to look at.
+# Stuff looking like (1|...) are random effects. Everything else is 'fixed'.
+# If you remove the random effect, this is just a standard multicategorical
+# regression (bayesian approach though).
+################################### change variables #############################################
+# m.c_r.e_model = brm(est_death_rate_cat ~ QUANTITY + TOTAL_ACTIVE_WT + DOSAGE_UNIT +
+#                       DOS_STR + EQU_MORPHINE + State + Population + median_income + 
+#                       Political.affiliation + county_total_wt + act_wt_person_county + 
+#                       (1|BUYER_COUNTY) + (1|REPORTER_NAME) + (1|MANUFACTURER), data = train_oh_wv_all,
+#                     chains = 1, family = "cumulative", iter = 2, warmup = 0) # iter should be big.
+# summary(m.c_r.e_model)
+###################################################################################################
+```
+
+```{r}
+### cumulative logistic regression
+cumu.logistic = nnet::multinom(est_death_rate_cat ~ log(pharmacy_num) + most_dist_channel + 
+                                 dominance + log(median_income) +  political_aff + log(act_wt_person_county), 
+                               data=train_oh_wv_all)
+summary(cumu.logistic)
+mostImportantVariables <- varImp(cumu.logistic)
+mostImportantVariables$Variables <- row.names(mostImportantVariables)
+mostImportantVariables <- mostImportantVariables[order(-mostImportantVariables$Overall),]
+print(head(mostImportantVariables))
+knitr::kable(cumu.logistic %>% tidy(conf.int=TRUE),format="html",digits=3)
+```
+
+
+```{r}
+## Classification tree model 
+set.seed(13)
+class.tree.1 <- tree(est_death_rate_cat ~ log(pharmacy_num) + most_dist_channel + dominance + 
+                       log(median_income) + political_aff +  log(act_wt_person_county), data=train_oh_wv_all)
+summary(class.tree.1)
+plot(class.tree.1) 
+text(class.tree.1, pretty = 0)
+class.tree.1 # Branches that lead to terminal nodes are indicated using asterisks
 ```
