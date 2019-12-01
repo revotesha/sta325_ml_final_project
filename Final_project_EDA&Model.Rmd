@@ -1,0 +1,335 @@
+---
+title: "final project_EDA and Model"
+author: "Alice Liao, Revo Tesha, Salvador, Cindy, Evelyn "
+date: "12/1/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readr)
+library(cowplot)
+library(janitor)
+library(nnet)
+library(caret)
+library(broom)
+library(tree)
+library(brms)
+set.seed(10)
+```
+
+## Exploratory Data Analysis
+
+### Training data
+```{r}
+oh_wv_2012 <- read.csv("data/oh_wv_2012.csv", header = TRUE)
+train = sample(max(dim(oh_wv_2012)), max(dim(oh_wv_2012))*0.75) # 75% training
+train_oh_wv_2012 = oh_wv_2012[train,]
+test_oh_wv_2012 = oh_wv_2012[-train,]
+```
+
+### Distribution of Variables (and possible transformations):
+```{r}
+summary(train_oh_wv_2012)
+```
+```{r}
+# death rate - numerical
+death_rate_p = ggplot(train_oh_wv_2012, aes(x = imput_est_death_rate_num)) +
+  geom_histogram() +
+  labs(x = "Estimated death rate")
+
+tdeath_rate_p = ggplot(train_oh_wv_2012, aes(x = log(imput_est_death_rate_num))) +
+  geom_histogram() +
+  labs(x = "Estimated death rate")
+
+plot_grid(death_rate_p,tdeath_rate_p)
+```
+
+
+```{r}
+# hydrocodone -- log transformation
+hyd_wt_p = ggplot(train_oh_wv_2012, aes(x = hyd_wt)) +
+  geom_histogram() +
+  labs(x = "Total Active Weight for Hydrocodone")
+thyd_wt_p = ggplot(train_oh_wv_2012, aes(x = log(hyd_wt))) +
+  geom_histogram() +
+  labs(x = "Log Total Active Weight for Hydrocodone")
+plot_grid(hyd_wt_p, thyd_wt_p)
+
+# % hydrocodone 
+hyd_perc_p = ggplot(train_oh_wv_2012, aes(perc_hyd))+
+  geom_histogram()
+thyd_perc_p = ggplot(train_oh_wv_2012, aes(log(perc_hyd)))+
+  geom_histogram()
+plot_grid(hyd_perc_p, thyd_perc_p)
+```
+
+```{r}
+# oxycodone -- log transformation
+oxy_wt_p = ggplot(train_oh_wv_2012, aes(x = oxy_wt)) +
+  geom_histogram() +
+  labs(x = "Total Active Weight for Oxycodone")
+toxy_wt_p = ggplot(train_oh_wv_2012, aes(x = log(oxy_wt))) +
+  geom_histogram() +
+  labs(x = "Log Total Active Weight for Oxycodone")
+plot_grid(oxy_wt_p, toxy_wt_p)
+
+# % oxycodone
+oxy_perc_p = ggplot(train_oh_wv_2012, aes(perc_oxy))+
+  geom_histogram()
+toxy_perc_p = ggplot(train_oh_wv_2012, aes(log(perc_oxy)))+
+  geom_histogram()
+plot_grid(oxy_perc_p, toxy_perc_p)
+```
+
+```{r}
+# number of distributors per 10,000 in a county -- no log transformation necessary
+ndptt_p = ggplot(train_oh_wv_2012, aes(x = distr_num_ptt)) +
+  geom_histogram() +
+  labs(x = "Number of Distributors per 10,000 in a County")
+tndptt_p = ggplot(train_oh_wv_2012, aes(x = log(distr_num_ptt))) +
+  geom_histogram() +
+  labs(x = "Log Number of Distributors per 10,000 in a County")
+plot_grid(ndptt_p, tndptt_p)
+```
+
+```{r}
+# number of pharmacies per 10,000 for a county -- no transformation necessary
+nptt_p = ggplot(train_oh_wv_2012, aes(x = pharmacy_num_ptt)) +
+  geom_histogram() +
+  labs(x = "Number of Pharmacies per 10,000 in a County")
+nptt_p
+```
+
+```{r}
+# distribution of median income - need log transformation
+med_income = ggplot(train_oh_wv_2012, aes(x = median_income)) +
+  geom_histogram() +
+  labs(x = "Median income")
+log_med_income = ggplot(train_oh_wv_2012, aes(x = log(median_income))) +
+  geom_histogram() +
+  labs(x = "Log median income")
+plot_grid(med_income, log_med_income)
+```
+
+```{r}
+# active drug weight per person in a county -- no log transformation necessary
+actwt_pp_plot = ggplot(train_oh_wv_2012, aes(x = act_wt_person_county)) +
+  geom_histogram() +
+  labs(x = "active weight per person")
+log_actwt_pp_plot = ggplot(train_oh_wv_2012, aes(x = log(act_wt_person_county))) +
+  geom_histogram() +
+  labs(x = "Log active weight per person")
+plot_grid(actwt_pp_plot, log_actwt_pp_plot)
+```
+
+### Predictors vs. Response:
+
+#### Responses: Death Rate Category
+```{r}
+ggplot(data = train_oh_wv_2012, aes(x = est_death_rate_cat, y = Population)) + 
+  geom_boxplot()+ 
+  title(xlab = "Estimated Death Rate Category", ylab = "County Population",
+        main = "Death Rate Category vs County Population") 
+
+ggplot(data = train_oh_wv_2012, aes(x = est_death_rate_cat, y = pharmacy_num_ptt)) + 
+  geom_boxplot() + 
+  title(xlab = "Estimated Death Rate Category", 
+        ylab = "Number of Pharmacies", 
+        main = "Death Rate Category vs Number of Pharmacies per 10,000 Population") 
+
+ggplot(data = train_oh_wv_2012, aes(x = est_death_rate_cat, y = distr_num_ptt)) +
+  geom_boxplot() +
+  labs(xlab = "Death Rate Category", y = "Number of manufacturers involved",
+       title = "County death rate vs Number of Manufacturers")
+
+#####################################################################################
+ggplot(data = train_oh_wv_2012, aes(x = all_active_wt, y = est_death_rate_cat)) + 
+  geom_boxplot() + xlab("Active weight total") + ylab("Estimated Death Rate Category") 
+
+train_oh_wv_2012 %>%
+  ggplot(aes(x = most_dist_channel, y = est_death_rate_cat)) + geom_boxplot() + xlab("Most Distributed Channel") + ylab("Estimated Death Rate Category") 
+  
+```
+
+#### Response: Median Income - IGNORE THIS MODEL FIRST
+
+```{r eval=FALSE}
+oh_wv_2012 %>%
+  ggplot(mapping = aes(x = Political.affiliation, y = median_income)) + geom_boxplot() + xlab("Political Affiliation") + ylab("Median Income")
+
+oh_wv_2012 %>%
+  ggplot(mapping = aes(x = dominance, y = median_income)) + geom_boxplot() + xlab("Dominance") + ylab("Median Income")
+
+
+oh_wv_2012 %>%
+  ggplot(mapping = aes(x = all_active_wt , y = median_income)) + geom_point()  + xlab("All Active Weight") + ylab("Median Income")
+
+med_inc_mod3 <- lm(median_income ~ all_active_wt, data = oh_wv_2012)
+plot(med_inc_mod3)
+
+
+oh_wv_2012 %>%
+  ggplot(mapping = aes(x = most_dist_channel , y = median_income)) +  geom_boxplot()  + xlab(" Most Distributed Channel") + ylab("Median Income")
+
+oh_wv_2012 %>%
+  ggplot(mapping = aes(x = pharmacy_num , y = median_income)) + geom_point()  + xlab("Number of Pharamacies") + ylab("Median Income")
+
+med_inc_mod6 <- lm(median_income ~ pharmacy_num, data = oh_wv_2012)
+plot(med_inc_mod6)
+
+
+oh_wv_2012 %>%
+  ggplot(mapping = aes(x = Population , y = median_income)) + geom_point()  + xlab("Population") + ylab("Median Income")
+
+med_inc_mod7 <- lm(median_income ~ Population, data = oh_wv_2012)
+plot(med_inc_mod7)
+
+```
+
+### Plot predictors against each other (Interactions)
+```{r}
+# number of manufactueres (ptt) vs total active weight of opioids per person by number of pharmacies (ptt)
+ggplot(train_oh_wv_2012,
+       aes(x = distr_num_ptt, y = as.numeric(est_death_rate_cat), color = pharmacy_num_ptt)) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title = "Number of Distributors per 10,000 People vs Estimated Death Rate \nby Number of Pharmacies per 10,000 People ",
+       x = "Number of Distributors per 10,000 People",
+       y = "Estimated Death Rate Category",
+       color = "Number of Pharmacies \nper 10,000 People")
+```
+
+
+```{r}
+# interaction b/w median income and political affiliation
+ggplot(data = train_oh_wv_2012, 
+            aes(x = median_income ,y = as.numeric(est_death_rate_cat),color = political_aff)) +
+  geom_point()+
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title = "Median Income vs Death Rate",
+       x = "Median Income", y = "Death Rate (Categorical)",
+       color = "Political Affiliation")
+# Interaction b/w number of pharmacies and political affliation 
+ggplot(data=train_oh_wv_2012, 
+       aes(x= pharmacy_num_ptt ,y = as.numeric(est_death_rate_cat), color= political_aff)) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title = "Number of Pharmacies per 10,000 People vs Death Rate", 
+       x = "Number of Pharmacies per 10,000 People", y = "Death Rate (Categorical)",
+       color = "Political Affiliation")
+# Interaction b/w % oxycodone and political affliation 
+ggplot(data=train_oh_wv_2012, 
+             aes(x = perc_oxy,y = as.numeric(est_death_rate_cat), color= political_aff)) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title="Percentage Oxycodone vs Death Rate", 
+       x = "Percentage Oxycodone", y= "Death Rate (Categorical)",
+       color ="Political Affiliation")
+# Interaction b/w active weight per person and political affliation 
+ggplot(data = train_oh_wv_2012, 
+            aes(x= act_wt_person_county ,y = as.numeric(est_death_rate_cat), color= political_aff)) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title="Active Drug Weight Available Per Person vs Death Rate", 
+       x = "Active Drug Weight Available Per Person", y = "Death Rate (Categorical)",
+       color = "Political Affiliation")
+```
+```{r}
+# interaction b/w median income and pharmacy dominance
+ggplot(data = train_oh_wv_2012, 
+            aes(x = median_income ,y = as.numeric(est_death_rate_cat),color = dominance)) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title = "Median Income vs Death Rate",
+       x = "Median Income", y = "Death Rate (Categorical)",
+       color = "Pharmacy Dominance")
+# Interaction b/w number of pharmacies and pharmacy dominance
+ggplot(data=train_oh_wv_2012, 
+       aes(x= pharmacy_num_ptt ,y=as.numeric(est_death_rate_cat) ,color= dominance)) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title = "Number of Pharmacies per 10,000 People vs Death Rate", 
+       x = "Number of Pharmacies", y = "Death Rate (Categorical)",
+       color = "Pharmacy Dominance")
+# Interaction b/w % oxycodone and political affliation 
+ggplot(data=train_oh_wv_2012, 
+             aes(x = perc_oxy,y = as.numeric(est_death_rate_cat), color= dominance)) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title="Percentage Oxycodone vs Death Rate", 
+       x = "Percentage Oxycodone", y= "Death Rate (Categorical)",
+       color ="Pharmacy Dominance")
+# Interaction b/w active weight per person and political affliation 
+ggplot(data = train_oh_wv_2012, 
+            aes(x= act_wt_person_county ,y = as.numeric(est_death_rate_cat), color= dominance)) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title="Active Drug Weight Available Per Person vs Death Rate", 
+       x = "Active Drug Weight Available Per Person", y = "Death Rate (Categorical)",
+       color = "Pharmacy Dominance")
+```
+
+```{r}
+# interaction b/w median income and most common distribution channel
+ggplot(data = train_oh_wv_2012, 
+            aes(x = median_income ,y = as.numeric(est_death_rate_cat),color = most_dist_channel)) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title = "Median Income vs Death Rate",
+       x = "Median Income", y = "Death Rate (Categorical)",
+       color = "Most Common Distribution Channel")
+# Interaction b/w number of pharmacies and most common distribtuion channel
+ggplot(data=train_oh_wv_2012, 
+       aes(x= pharmacy_num_ptt ,y=as.numeric(est_death_rate_cat) ,color= most_dist_channel)) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title = "Number of Pharmacies per 10,000 People vs Death Rate", 
+       x = "Number of Pharmacies", y = "Death Rate (Categorical)",
+       color = "Most Common Distribution Channel")
+# Interaction b/w % oxycodone and most common distribtuion channel
+ggplot(data=train_oh_wv_2012, 
+             aes(x = perc_oxy,y = as.numeric(est_death_rate_cat), color= most_dist_channel)) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title="Percentage Oxycodone vs Death Rate", 
+       x = "Percentage Oxycodone", y= "Death Rate (Categorical)",
+       color ="Most Common Distribution Channel")
+# Interaction b/w active weight per person and most common distribtuion channel
+ggplot(data = train_oh_wv_2012, 
+            aes(x= act_wt_person_county ,y = as.numeric(est_death_rate_cat), color= most_dist_channel)) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title="Active Drug Weight Available Per Person vs Death Rate", 
+       x = "Active Drug Weight Available Per Person", y = "Death Rate (Categorical)",
+       color = "Most Common Distribution Channel")
+```
+
+
+## Modeling
+
+```{r}
+### cumulative logistic regression
+cumu.logistic = nnet::multinom(est_death_rate_cat ~ log(pharmacy_num) + most_dist_channel + 
+                                 dominance + log(median_income) +  political_aff + log(act_wt_person_county), 
+                               data=train_oh_wv_2012)
+summary(cumu.logistic)
+mostImportantVariables <- varImp(cumu.logistic)
+mostImportantVariables$Variables <- row.names(mostImportantVariables)
+mostImportantVariables <- mostImportantVariables[order(-mostImportantVariables$Overall),]
+print(head(mostImportantVariables))
+knitr::kable(cumu.logistic %>% tidy(conf.int=TRUE),format="html",digits=3)
+```
+
+
+```{r}
+## Classification tree model 
+set.seed(13)
+class.tree.1 <- tree(est_death_rate_cat ~ log(pharmacy_num) + most_dist_channel + dominance + 
+                       log(median_income) + political_aff +  log(act_wt_person_county), data=train_oh_wv_2012)
+summary(class.tree.1)
+plot(class.tree.1) 
+text(class.tree.1, pretty = 0)
+class.tree.1 # Branches that lead to terminal nodes are indicated using asterisks
+```
