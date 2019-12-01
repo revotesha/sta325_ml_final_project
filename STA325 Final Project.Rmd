@@ -141,7 +141,7 @@ death1 %>%
   geom_col(aes(x = Year, y = est_death_rate_cat)) +
   # geom_hline(yintercept = median(death_rate))+
   labs(title = "Drug-related Death Rate from 2006 - 2012, WV") # death rate in general has a upward trend
-# arcos original dataset EDA
+# arcos original dataset EDA 
 # total active weight by county and drug name
 arcos_wt_eda <- arcos1 %>%
   group_by(BUYER_COUNTY, Year) %>%
