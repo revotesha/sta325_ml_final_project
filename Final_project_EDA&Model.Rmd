@@ -526,9 +526,10 @@ varImpPlot(rf.tree)
 ## Boosting
 library(gbm)
 set.seed(6)
-boost <- gbm(est_death_rate_cat ~ ., data = pred_matrix, distribution = "multinomial", n.trees = 5000, interaction.depth = 1)
+boost <- gbm(est_death_rate_cat ~ ., data = pred_matrix, distribution = "gaussian", n.trees = 5000, interaction.depth = 1)
 summary(boost)
 boost.pred <- predict(boost, newdata = bag.test, n.trees = 5000)
+
 table(boost.pred, deathrate.test)
 sum(diag(table(boost.pred, deathrate.test)))/36 # correctly classified ~25%
 ```
