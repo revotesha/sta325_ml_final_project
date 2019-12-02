@@ -43,9 +43,15 @@ death_rate_p = ggplot(train_oh_wv_2012, aes(x = imput_est_death_rate_num)) +
 
 tdeath_rate_p = ggplot(train_oh_wv_2012, aes(x = log(imput_est_death_rate_num))) +
   geom_histogram() +
-  labs(x = "Estimated death rate")
+  labs(x = "log of xsEstimated death rate")
 
 plot_grid(death_rate_p,tdeath_rate_p)
+
+# death rate - categorial
+ggplot(train_oh_wv_2012)+
+  geom_bar(aes(x = est_death_rate_cat)) +
+  labs(x = "Death Rate (Categorical)",
+       title = "Distribution of Death Rate")
 ```
 
 
@@ -351,7 +357,7 @@ ggplot(data = train_oh_wv_2012,
   geom_smooth(se = FALSE, method = "lm") +
   labs(title = "Median Income vs Death Rate",
        x = "Median Income", y = "Death Rate (Categorical)",
-       color = "Most Common Distribution Channel")
+       color = "Most Common \nDistribution Channel")
 # Interaction b/w number of pharmacies and most common distribtuion channel
 ggplot(data=train_oh_wv_2012, 
        aes(x= pharmacy_num_ptt ,y=as.numeric(est_death_rate_cat) ,color= most_dist_channel)) +
@@ -359,7 +365,7 @@ ggplot(data=train_oh_wv_2012,
   geom_smooth(se = FALSE, method = "lm") +
   labs(title = "Number of Pharmacies per 10,000 People vs Death Rate", 
        x = "Number of Pharmacies", y = "Death Rate (Categorical)",
-       color = "Most Common Distribution Channel")
+       color = "Most Common \nDistribution Channel")
 # Interaction b/w % oxycodone and most common distribtuion channel
 ggplot(data=train_oh_wv_2012, 
              aes(x = perc_oxy,y = as.numeric(est_death_rate_cat), color= most_dist_channel)) +
@@ -367,7 +373,7 @@ ggplot(data=train_oh_wv_2012,
   geom_smooth(se = FALSE, method = "lm") +
   labs(title="Percentage Oxycodone vs Death Rate", 
        x = "Percentage Oxycodone", y= "Death Rate (Categorical)",
-       color ="Most Common Distribution Channel")
+       color ="Most Common \nDistribution Channel")
 # Interaction b/w active weight per person and most common distribtuion channel
 ggplot(data = train_oh_wv_2012, 
             aes(x= act_wt_person_county ,y = as.numeric(est_death_rate_cat), color= most_dist_channel)) +
@@ -375,7 +381,7 @@ ggplot(data = train_oh_wv_2012,
   geom_smooth(se = FALSE, method = "lm") +
   labs(title="Active Drug Weight Available Per Person vs Death Rate", 
        x = "Active Drug Weight Available Per Person", y = "Death Rate (Categorical)",
-       color = "Most Common Distribution Channel")
+       color = "Most Common \nDistribution Channel")
 ```
 
 
