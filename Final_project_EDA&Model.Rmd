@@ -444,7 +444,6 @@ knitr::kable(fit1_interact_ord %>% tidy(conf.int=TRUE),format="html",digits=3)
  - only works for numerical response variable... rip
 ```{r eval=FALSE}
 library(hierNet)
-library(tidyverse)
 pred_matrix <- train_oh_wv_2012 %>%  #x is a matrix of predictors
   mutate(log_income = log(median_income)) %>%
   dplyr::select(est_death_rate_cat, pharmacy_num_ptt, most_dist_channel, dominance, log_income,  political_aff, act_wt_person_county, perc_oxy, distr_num_ptt)
@@ -468,16 +467,19 @@ class.tree.1 # Branches that lead to terminal nodes are indicated using asterisk
 ### Ordinal Net 
 ```{r}
 library(ordinalNet)
+set.seed(1234)
 y<-as.factor(train_oh_wv_2012$est_death_rate_cat)
 x<-model.matrix(est_death_rate_cat~., pred_matrix)
 class(x)
-lamb<-seq(1, 100, by=1)
 ordnet1 <- ordinalNet(x, y, family="cumulative", link="logit",
-                   parallelTerms=TRUE, nonparallelTerms=FALSE, alpha=1, standardize = TRUE)
-coef.ordinalNet(ordnet1, matrix = TRUE, whichLambda = FALSE, criteria="aic")
+                   parallelTerms=TRUE, nonparallelTerms=TRUE, alpha=1, # alpha = 1 means Lasso
+                   standardize = TRUE)
+
 summary(ordnet1)
-coef(ordnet1, matrix=TRUE, whichLambda = NULL, criteria="aic")
-set.seed(0813)
+coef(ordnet1, matrix=TRUE, criteria="aic") #by default, best AIC model is returned
+
+
+# CV by misclassification error
 ordinalNetCV(x, y, tuneMethod = "cvMisclass")
 ```
 
