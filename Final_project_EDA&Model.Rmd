@@ -483,3 +483,36 @@ coef(ordnet1, matrix=TRUE, criteria="aic") #by default, best AIC model is return
 ordinalNetCV(x, y, tuneMethod = "cvMisclass")
 ```
 
+### Calculate accuracy for all logistic regression models 
+#### fit1_interact_ord
+```{r}
+deathrate.test <- test_oh_wv_2012$est_death_rate_cat
+classtree.pred.fit1_interact_ord <- predict(fit1_interact_ord, test_oh_wv_2012, type = "class") 
+table(classtree.pred.fit1_interact_ord, deathrate.test)
+sum(diag(table(classtree.pred.fit1_interact_ord, deathrate.test)))/36
+```
+#### fit0_interact
+```{r}
+deathrate.test <- test_oh_wv_2012$est_death_rate_cat
+classtree.pred.fit0.interact <- predict(fit0.interact, test_oh_wv_2012, type = "class") 
+table(classtree.pred.fit0.interact, deathrate.test)
+sum(diag(table(classtree.pred.fit0.interact, deathrate.test)))/36
+```
+#### ordnet
+```{r}
+pred_matrix.ordnet1 <- test_oh_wv_2012 %>%  #x is a matrix of predictors
+  mutate(log_income = log(median_income)) %>%
+  dplyr::select(est_death_rate_cat, pharmacy_num_ptt, most_dist_channel, dominance, log_income,  political_aff, act_wt_person_county, perc_oxy, distr_num_ptt)
+x.test.ordnet1<-model.matrix(est_death_rate_cat~., pred_matrix.ordnet1)
+ordnet.pred<-predict(ordnet1, newx = x.test.ordnet1, whichLambda = NULL,
+      criteria = c("aic"), type = c("class"))
+view(ordnet.pred)
+deathrate.test <- as.character(test_oh_wv_2012$est_death_rate_cat)
+no.cat.test<-str_replace(deathrate.test, "cat_", "")
+no.cat.test<-as.numeric(no.cat.test)
+view(no.cat.test)
+table(ordnet.pred, no.cat.test)
+z<-c(0, 0, 0, 0, 0)
+table<-rbind(table(ordnet.pred, no.cat.test), z)
+sum(diag(table))/36
+```
