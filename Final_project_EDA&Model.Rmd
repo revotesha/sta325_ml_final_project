@@ -377,16 +377,52 @@ ggplot(data = train_oh_wv_2012,
 ## Modeling
 
 ```{r}
-### cumulative logistic regression
-cumu.logistic = nnet::multinom(est_death_rate_cat ~ log(pharmacy_num) + most_dist_channel + 
-                                 dominance + log(median_income) +  political_aff + log(act_wt_person_county), 
-                               data=train_oh_wv_2012)
+### cumulative logistic regression, HIGHER AIC, BETTER THAN PROP.
+cumu.logistic = nnet::multinom(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt, data=train_oh_wv_2012)
 summary(cumu.logistic)
 mostImportantVariables <- varImp(cumu.logistic)
 mostImportantVariables$Variables <- row.names(mostImportantVariables)
 mostImportantVariables <- mostImportantVariables[order(-mostImportantVariables$Overall),]
 print(head(mostImportantVariables))
 knitr::kable(cumu.logistic %>% tidy(conf.int=TRUE),format="html",digits=3)
+```
+
+```{r}
+### polyr 
+library(MASS)
+fit1<-polr(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt, data=train_oh_wv_2012, Hess=TRUE, method="logistic")
+summary(fit1)
+(ctable <- coef(summary(fit1)))
+## calculate and store p values
+p <- pnorm(abs(ctable[, "t value"]), lower.tail = FALSE) * 2
+
+## combined table
+(ctable <- cbind(ctable, "p value" = p))
+#not significant at p=0.05: most dist channel retail, perc_oxy
+```
+## Model with interactions 
+```{r}
+### polyr with interactions, 268.1159
+fit1_interact<-polr(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt + log(median_income)*political_aff+act_wt_person_county*distr_num_ptt+act_wt_person_county*pharmacy_num_ptt+pharmacy_num_ptt*political_aff+log(median_income)*most_dist_channel+log(median_income)*pharmacy_num_ptt+perc_oxy*dominance+act_wt_person_county*perc_oxy, data=train_oh_wv_2012, Hess=TRUE, method="logistic")
+summary(fit1_interact)
+(ctable.interact.1 <- coef(summary(fit1_interact)))
+## calculate and store p values
+p1.interact <- pnorm(abs(ctable.interact.1[, "t value"]), lower.tail = FALSE) * 2
+
+## combined table
+(ctable.interact.1 <- cbind(ctable.interact.1, "p value" = p1.interact))
+#not significant at p=0.05: political aff republican, active weight pp county, perc, oxy, distr_num_ptt, income*political, act weight * no. of dist., pharmacy nu * active weight, pharmacy num * political, dominance yes: perc_oxy, active weight* oxy 
+
+#sig ones: dist channel retail * income, pharmacy*income
+
+##ordinal with interactions AIC: 317.8469
+fit1_interact_ord<-nnet::multinom(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt + log(median_income)*political_aff+act_wt_person_county*distr_num_ptt+act_wt_person_county*pharmacy_num_ptt+pharmacy_num_ptt*political_aff+log(median_income)*most_dist_channel+log(median_income)*pharmacy_num_ptt+perc_oxy*dominance+act_wt_person_county*perc_oxy, data=train_oh_wv_2012)
+summary(fit1_interact_ord)
+mostImportantVariables.ord.interact <- varImp(fit1_interact_ord)
+mostImportantVariables.ord.interact$Variables <- row.names(mostImportantVariables.ord.interact)
+mostImportantVariables.ord.interact <- mostImportantVariables.ord.interact[order(-mostImportantVariables.ord.interact$Overall),]
+print(head(mostImportantVariables.ord.interact))
+knitr::kable(fit1_interact_ord %>% tidy(conf.int=TRUE),format="html",digits=3)
 ```
 
 
