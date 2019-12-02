@@ -130,18 +130,18 @@ plot_grid(actwt_pp_plot, log_actwt_pp_plot)
 ```{r}
 ggplot(data = train_oh_wv_2012, aes(x = est_death_rate_cat, y = Population)) + 
   geom_boxplot()+ 
-  title(xlab = "Estimated Death Rate Category", ylab = "County Population",
+  labs(x = "Estimated Death Rate Category", ylab = "County Population",
         main = "Death Rate Category vs County Population") 
 
 ggplot(data = train_oh_wv_2012, aes(x = est_death_rate_cat, y = pharmacy_num_ptt)) + 
   geom_boxplot() + 
-  title(xlab = "Estimated Death Rate Category", 
-        ylab = "Number of Pharmacies", 
-        main = "Death Rate Category vs Number of Pharmacies per 10,000 Population") 
+  labs(x = "Estimated Death Rate Category", 
+       y = "Number of Pharmacies", 
+       main = "Death Rate Category vs Number of Pharmacies per 10,000 Population") 
 
 ggplot(data = train_oh_wv_2012, aes(x = est_death_rate_cat, y = distr_num_ptt)) +
   geom_boxplot() +
-  labs(xlab = "Death Rate Category", y = "Number of manufacturers involved",
+  labs(x = "Death Rate Category", y = "Number of manufacturers involved",
        title = "County death rate vs Number of Manufacturers")
 
 #####################################################################################
@@ -190,7 +190,7 @@ plot(med_inc_mod7)
 
 ### Plot predictors against each other (Interactions)
 ```{r}
-# number of manufactueres (ptt) vs total active weight of opioids per person by number of pharmacies (ptt)
+# number of manufactueres (ptt) vs death rate by number of pharmacies (ptt)
 ggplot(train_oh_wv_2012,
        aes(x = distr_num_ptt, y = as.numeric(est_death_rate_cat), color = pharmacy_num_ptt)) +
   geom_point() +
@@ -199,6 +199,73 @@ ggplot(train_oh_wv_2012,
        x = "Number of Distributors per 10,000 People",
        y = "Estimated Death Rate Category",
        color = "Number of Pharmacies \nper 10,000 People")
+ggplot(train_oh_wv_2012,
+       aes(x = distr_num_ptt, y = pharmacy_num_ptt))+
+  geom_point()
+
+# % oxycodone vs death rate by number of pharmacies (ptt)
+ggplot(train_oh_wv_2012,
+       aes(x = perc_oxy, y = as.numeric(est_death_rate_cat), color = pharmacy_num_ptt)) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title = "Percentage Oxycodone vs Estimated Death Rate \nby Number of Pharmacies per 10,000 People ",
+       x = "Percentage Oxycodone",
+       y = "Estimated Death Rate Category",
+       color = "Number of Pharmacies \nper 10,000 People")
+
+ggplot(train_oh_wv_2012,
+       aes(x = perc_oxy, y = pharmacy_num_ptt))+
+  geom_point()
+
+# % oxycodone vs death rate by number of manufacturers
+ggplot(train_oh_wv_2012,
+       aes(x = perc_oxy, y = as.numeric(est_death_rate_cat), color = distr_num_ptt)) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title = "Percentage Oxycodone vs Estimated Death Rate \nby Number of Pharmacies per 10,000 People ",
+       x = "Percentage Oxycodone",
+       y = "Estimated Death Rate Category",
+       color = "Number of Drug Manufacturers")
+
+ggplot(train_oh_wv_2012,
+       aes(x = perc_oxy, y = distr_num_ptt))+
+  geom_point()
+
+# active weight per person vs number of pharmacies
+ggplot(train_oh_wv_2012,
+       aes(x = act_wt_person_county, y = as.numeric(est_death_rate_cat), color = pharmacy_num_ptt)) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title = "Active Weight vs Estimated Death Rate \nby Number of Pharmacies per 10,000 People ",
+       x = "Active weight per person",
+       y = "Estimated Death Rate Category",
+       color = "Number of Pharmacies \nper 10,000 People")
+  
+
+# number of manufacturers vs active weight per person
+ggplot(train_oh_wv_2012,
+       aes(x = act_wt_person_county, y = as.numeric(est_death_rate_cat), color = distr_num_ptt)) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title = "Active Weight vs Estimated Death Rate \nby Number of Pharmacies per 10,000 People ",
+       x = "Active weight per person",
+       y = "Estimated Death Rate Category",
+       color = "Number of Drug Manufacturers")
+
+ggplot(train_oh_wv_2012,
+       aes(x = act_wt_person_county, y = distr_num_ptt))+
+  geom_point()
+
+# income vs number of pharmacies
+ggplot(train_oh_wv_2012,
+       aes(x = median_income, y = as.numeric(est_death_rate_cat), color = pharmacy_num_ptt)) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm") +
+  labs(title = "Median Income vs Estimated Death Rate \nby Number of Pharmacies per 10,000 People ",
+       x = "Median Income",
+       y = "Estimated Death Rate Category",
+       color = "Number of Pharmacies")
+  
 ```
 
 
