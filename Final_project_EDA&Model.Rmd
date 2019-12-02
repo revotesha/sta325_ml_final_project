@@ -480,11 +480,13 @@ par(mfrow = c(1,2))
 plot(cv.classtree$size, cv.classtree$dev, type = "b") # lowest cv-error is when #nodes = 6
 plot(cv.classtree$k, cv.classtree$dev, type = "b")
 
-prune.classtree <- prune.misclass(classtree, best = 6) 
+prune.classtree <- prune.misclass(classtree, best = 2) 
 plot(prune.classtree)
 text(prune.classtree, pretty = 0)
-prunetree.pred <- predict(prune.classtree, newdata = test_oh_wv_2012, type = "class") table(prunetree.pred, deathrate.test)
-sum(diag(table(prunetree.pred, deathrate.test)))/36 # correctly classified ~38.9%
+prunetree.pred <- predict(prune.classtree, newdata = test_oh_wv_2012, type = "class") 
+
+table(prunetree.pred, deathrate.test)
+sum(diag(table(prunetree.pred, deathrate.test)))/36 # correctly classified ~36.1%
 ```
 
 ```{r}
@@ -527,7 +529,7 @@ summary(boost)
 boost.pred <- predict(boost, newdata = bag.test, n.trees = 5000)
 
 table(boost.pred, deathrate.test)
-sum(diag(table(boost.pred, deathrate.test)))/36 # correctly classified ~55.5%
+sum(diag(table(boost.pred, deathrate.test)))/36 # correctly classified ~5.55%
 ```
 
 ### Ordinal Net 
