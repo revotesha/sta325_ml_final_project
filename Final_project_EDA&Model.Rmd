@@ -531,7 +531,7 @@ summary(boost)
 boost.pred <- predict(boost, newdata = bag.test, n.trees = 5000)
 
 table(boost.pred, deathrate.test)
-sum(diag(table(boost.pred, deathrate.test)))/36 # correctly classified ~25%
+sum(diag(table(boost.pred, deathrate.test)))/36 # correctly classified ~27.8%
 ```
 
 
@@ -550,7 +550,7 @@ summary(ordnet1)
 coef(ordnet1, matrix=TRUE, criteria="aic") #by default, best AIC model is returned
 
 # CV by misclassification error
-ordinalNetCV(x, y, tuneMethod = "cvMisclass")
+# ordinalNetCV(x, y, tuneMethod = "cvMisclass")
 ```
 
 
