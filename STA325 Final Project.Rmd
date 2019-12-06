@@ -294,7 +294,7 @@ arcos_death_and_income2012 <- merge(arcos_and_death2012, income_data,
                                    by.x = "BUYER_COUNTY", by.y = "county", all.x = TRUE)
 # merge arcos_death_and_income2012 with policatal affiliation data
 all2012 = merge(arcos_death_and_income2012, pol_affiliation, 
-                by.x = "BUYER_COUNTY", by.y = "State", all.x = TRUE)
+                by.x = "BUYER_COUNTY", by.y = "County", all.x = TRUE)
 
 # merge with population data, create total active weight in county per person
 oh_wv_2012 <- all2012 %>%
