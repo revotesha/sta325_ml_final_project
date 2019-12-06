@@ -85,7 +85,10 @@ plot_grid(oxy_wt_p, toxy_wt_p)
 
 # % oxycodone
 oxy_perc_p = ggplot(train_oh_wv_2012, aes(perc_oxy))+
-  geom_histogram()
+  geom_histogram() +
+  labs(x = "% of oxycodone by active weight",
+       title = "Distribution of % of oxycodone by active weight")
+  
 toxy_perc_p = ggplot(train_oh_wv_2012, aes(log(perc_oxy)))+
   geom_histogram()
 plot_grid(oxy_perc_p, toxy_perc_p)
@@ -95,7 +98,8 @@ plot_grid(oxy_perc_p, toxy_perc_p)
 # number of distributors per 10,000 in a county -- no log transformation necessary
 ndptt_p = ggplot(train_oh_wv_2012, aes(x = distr_num_ptt)) +
   geom_histogram() +
-  labs(x = "Number of Distributors per 10,000 in a County")
+  labs(x = "Number of Drug Suppliers per 10,000",
+       title = "Number of Drug Suppliers per 10,000 in a County")
 tndptt_p = ggplot(train_oh_wv_2012, aes(x = log(distr_num_ptt))) +
   geom_histogram() +
   labs(x = "Log Number of Distributors per 10,000 in a County")
@@ -106,7 +110,8 @@ plot_grid(ndptt_p, tndptt_p)
 # number of pharmacies per 10,000 for a county -- no transformation necessary
 nptt_p = ggplot(train_oh_wv_2012, aes(x = pharmacy_num_ptt)) +
   geom_histogram() +
-  labs(x = "Number of Pharmacies per 10,000 in a County")
+  labs(x = "Number of Pharmacies per 10,000",
+       title = "Number of Pharmacies per 10,000 in a County")
 nptt_p
 ```
 
@@ -125,7 +130,8 @@ plot_grid(med_income, log_med_income)
 # active drug weight per person in a county -- no log transformation necessary
 actwt_pp_plot = ggplot(train_oh_wv_2012, aes(x = act_wt_person_county)) +
   geom_histogram() +
-  labs(x = "active weight per person")
+  labs(x = "active weight per person (in grams)",
+       title = "Distribution of active weight of opioid \navailable to each person")
 log_actwt_pp_plot = ggplot(train_oh_wv_2012, aes(x = log(act_wt_person_county))) +
   geom_histogram() +
   labs(x = "Log active weight per person")
@@ -486,13 +492,13 @@ par(mfrow = c(1,2))
 plot(cv.classtree$size, cv.classtree$dev, type = "b") # lowest cv-error is when #nodes = 6
 plot(cv.classtree$k, cv.classtree$dev, type = "b")
 
-prune.classtree <- prune.misclass(classtree, best = 2) 
+prune.classtree <- prune.misclass(classtree, best = 3) 
 plot(prune.classtree)
 text(prune.classtree, pretty = 0)
 prunetree.pred <- predict(prune.classtree, newdata = test_oh_wv_2012, type = "class") 
 
 table(prunetree.pred, deathrate.test)
-sum(diag(table(prunetree.pred, deathrate.test)))/36 # correctly classified ~36.1%
+sum(diag(table(prunetree.pred, deathrate.test)))/36 # correctly classified ~38.8%
 ```
 
 ```{r}
@@ -530,12 +536,13 @@ varImpPlot(rf.tree)
 ## Boosting
 library(gbm)
 set.seed(6)
-boost <- gbm(est_death_rate_cat ~ ., data = pred_matrix, distribution = "gaussian", n.trees = 5000, interaction.depth = 1)
+boost <- gbm(est_death_rate_cat ~ ., data = pred_matrix, distribution = "multinomial", n.trees = 5000, interaction.depth = 1) # distribution = "gaussian"
 summary(boost)
 boost.pred <- predict(boost, newdata = bag.test, n.trees = 5000)
 
 table(boost.pred, deathrate.test)
 sum(diag(table(boost.pred, deathrate.test)))/36 # correctly classified ~5.55%
+
 ```
 
 ### Ordinal Net 
