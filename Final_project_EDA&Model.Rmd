@@ -377,11 +377,11 @@ knitr::kable(cumu.logistic %>% tidy(conf.int=TRUE),format="html",digits=3)
 library(MASS)
 fit1<-polr(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt, data=train_oh_wv_2012, Hess=TRUE, method="logistic")
 summary(fit1)
-ctable <- coef(summary(fit1))
+(ctable <- coef(summary(fit1)))
 ## calculate and store p values
 p <- pnorm(abs(ctable[, "t value"]), lower.tail = FALSE) * 2
 ## combined table
-ctable <- cbind(ctable, "p value" = p)
+(ctable <- cbind(ctable, "p value" = p))
 #not significant at p=0.05: most dist channel retail, perc_oxy
 ```
 
@@ -563,8 +563,7 @@ pharm_num.test.ordnet1 = as.data.frame(pred_matrix.ordnet1) %>%
          median_income = 43194.13,
          political_aff="Republican",
          perc_oxy = 54.2, act_wt_person_county = 0.19294084, distr_num_ptt = 1.709)
-summary(fit.select)
-classprob_pharm_num  <- predict(fit.select, newdata = pharm_num.test.ordnet1, type = "probs", se.fit = TRUE)
+classprob_pharm_num  <- predict(fit.select, newdata = pharm_num.test.ordnet1, type = "probs")
 # plotting
 classprob_pharm_num_df = t(classprob_pharm_num) %>% 
   as.data.frame() %>%
@@ -812,7 +811,7 @@ distr_num.test.ordnet1 = as.data.frame(pred_matrix.ordnet1) %>%
          median_income = 43194.13,
          political_aff="Republican",
          act_wt_person_county = 0.19294084)
-classprob_distr_num  <- polr.predict(fit.select, newdata = distr_num.test.ordnet1, type = "probs", conf.int=0.95)
+classprob_distr_num  <- predict(fit.select, newdata = distr_num.test.ordnet1, type = "probs")
 # plotting
 classprob_distr_num_df = t(classprob_distr_num) %>% 
   as.data.frame() %>%
@@ -1065,4 +1064,3 @@ income_4_p = ggplot(classcumprob_income_4_df, aes(x = median_income, y = probabi
 income_1_p + income_4_p
 # plot_grid(income_1_p, income_4_p, axis = "r", align = "v")
 ```
-
