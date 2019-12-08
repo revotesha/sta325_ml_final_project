@@ -459,7 +459,7 @@ knitr::kable(fit1_interact_ord %>% tidy(conf.int=TRUE),format="html",digits=3)
 
 ### Tree Models
 ```{r}
-pred_matrix <- train_oh_wv_2012 %>%  #x is a matrix of predictors
+pred_matrix <- train_oh_wv_2012 %>%  # a matrix of predictors
   mutate(log_income = log(median_income)) %>%
   dplyr::select(est_death_rate_cat, pharmacy_num_ptt, most_dist_channel, dominance, log_income,  political_aff, act_wt_person_county, perc_oxy, distr_num_ptt)
 
@@ -536,13 +536,14 @@ varImpPlot(rf.tree)
 ## Boosting
 library(gbm)
 set.seed(6)
-boost <- gbm(est_death_rate_cat ~ ., data = pred_matrix, distribution = "multinomial", n.trees = 5000, interaction.depth = 1) # distribution = "gaussian"
+boost <- gbm(est_death_rate_cat ~ ., data = pred_matrix, distribution = "gaussian", n.trees = 5000, interaction.depth = 1) 
+# distribution = "gaussian", but gaussian uses baseline logistic regression - doesn't account for order --> may not be a good model to begin with
+# distribution = "multinomial" doesn't work?? 
 summary(boost)
-boost.pred <- predict(boost, newdata = bag.test, n.trees = 5000)
-
+boost.pred <- predict(boost, newdata = bag.test, n.trees = 5000) # need to assign class to the numerical predicted values
+dim(boost.pred)
 table(boost.pred, deathrate.test)
 sum(diag(table(boost.pred, deathrate.test)))/36 # correctly classified ~5.55%
-
 ```
 
 ### Ordinal Net 
