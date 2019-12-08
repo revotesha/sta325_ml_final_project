@@ -356,13 +356,10 @@ ggplot(data = train_oh_wv_2012,
 # without interactions
 fit0 <- nnet::multinom(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt, data=train_oh_wv_2012)
 summary(fit0)
-<<<<<<< HEAD
 ```
 
 
 ```{r}
-=======
->>>>>>> 4d08d1cafed0dd9abd2bc79ba875c4b3e3e644f2
 # with interactions
 fit0.interact <- nnet::multinom(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt + log(median_income)*political_aff+act_wt_person_county*distr_num_ptt+act_wt_person_county*pharmacy_num_ptt+pharmacy_num_ptt*political_aff+log(median_income)*most_dist_channel+log(median_income)*pharmacy_num_ptt+perc_oxy*dominance+act_wt_person_county*perc_oxy, data=train_oh_wv_2012)
 summary(fit0.interact)
@@ -420,8 +417,7 @@ ctable.interact.1 <- coef(summary(fit1_interact))
 p1.interact <- pnorm(abs(ctable.interact.1[, "t value"]), lower.tail = FALSE) * 2
 ## combined table
 (ctable.interact.1 <- cbind(ctable.interact.1, "p value" = p1.interact))
-<<<<<<< HEAD
-=======
+
 #not significant at p=0.05: political aff republican, active weight pp county, perc, oxy, distr_num_ptt, income*political, act weight * no. of dist., pharmacy nu * active weight, pharmacy num * political, dominance yes: perc_oxy, active weight* oxy 
 #sig ones: dist channel retail * income, pharmacy*income
 ##ordinal with interactions
@@ -432,7 +428,7 @@ mostImportantVariables.ord.interact$Variables <- row.names(mostImportantVariable
 mostImportantVariables.ord.interact <- mostImportantVariables.ord.interact[order(-mostImportantVariables.ord.interact$Overall),]
 print(head(mostImportantVariables.ord.interact))
 knitr::kable(fit1_interact_ord %>% tidy(conf.int=TRUE),format="html",digits=3)
->>>>>>> 4d08d1cafed0dd9abd2bc79ba875c4b3e3e644f2
+
 ```
 
 ### Backward selection to get lowest AIC (cumulative logit with interactions) - FINAL MODEL
@@ -866,7 +862,7 @@ ggplot(classcumprob_distr_num_df, aes(x = distr_num_ptt, y = probability)) +
           legend.title = element_blank())
 ```
 
-#### interaction plots for fit.select
+#### interaction plots for fit.select ON TESTING
 
 ```{r}
 ## number of pharmacies and political affilition
@@ -1092,3 +1088,999 @@ income_4_p = ggplot(classcumprob_income_4_df, aes(x = median_income, y = probabi
 income_1_p + income_4_p
 # plot_grid(income_1_p, income_4_p, axis = "r", align = "v")
 ```
+
+
+#### prediction plots for fit.select ON TESTING
+
+```{r}
+#pharmacy no
+pharm_num.test.ordnet1 = as.data.frame(pred_matrix.ordnet1) %>%
+  mutate(most_dist_channel = "RETAIL PHARMACY", dominance = "Yes",
+         median_income = 43194.13,
+         political_aff="Republican",
+         perc_oxy = 54.2, act_wt_person_county = 0.19294084, distr_num_ptt = 1.709)
+classprob_pharm_num  <- predict(fit.select, newdata = pharm_num.test.ordnet1, type = "probs")
+# plotting
+classprob_pharm_num_df = t(classprob_pharm_num) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_pharm_num_df) = NULL
+colnames(classprob_pharm_num_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_pharm_num_df = as.data.frame(classprob_pharm_num_df) %>%
+  cbind(pharm_num.test.ordnet1) %>%
+  dplyr::select(pharmacy_num_ptt, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+  
+ggplot(classcumprob_pharm_num_df, aes(x = pharmacy_num_ptt, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Cumulative Probabilities for Pharmacy No. per ten thousand people", 
+         y = "P(Y<=j)",
+         x= "Pharmacy Number PTT") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+```
+
+```{r}
+summary(fit.select)
+# most_dist_channel
+dom_channel.test.ordnet1 = as.data.frame(pred_matrix.ordnet1) %>%
+  mutate(pharmacy_num_ptt = 3.038, dominance="Yes", median_income=43194.13,
+         political_aff = "Republican",
+         act_wt_person_county = 0.19294084,
+         perc_oxy = 54.2, distr_num_ptt = 1.709)
+classprob_most_dist_channel <- predict(fit.select, newdata = dom_channel.test.ordnet1, type = "probs")
+# plotting
+classprob_most_dist_channel_df = t(classprob_most_dist_channel) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_most_dist_channel_df) = NULL
+colnames(classprob_most_dist_channel_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_most_dist_channel_df = as.data.frame(classprob_most_dist_channel_df) %>%
+  cbind(dom_channel.test.ordnet1) %>%
+  dplyr::select(most_dist_channel, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class),
+         most_dist_channel = as.factor(most_dist_channel))
+  
+ggplot(classcumprob_most_dist_channel_df, aes(x = most_dist_channel, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Cumulative Probabilities for most common distributionn channel", 
+         y = "P(Y<=j)",
+         x= "most common distribution channel") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+```
+
+
+```{r}
+# dominance
+dom_channel.test.ordnet1 = as.data.frame(pred_matrix.ordnet1) %>%
+  mutate(pharmacy_num_ptt = 3.038, most_dist_channel = "RETAIL PHARMACY", median_income=43194.13,
+         political_aff = "Republican",
+         act_wt_person_county = 0.19294084,
+         perc_oxy = 54.2, distr_num_ptt = 1.709)
+classprob_dom <- predict(fit.select, newdata = dom_channel.test.ordnet1, type = "probs")
+# plotting
+classprob_dom_df = t(classprob_dom) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_dom_df) = NULL
+colnames(classprob_dom_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_dom_df = as.data.frame(classprob_dom_df) %>%
+  cbind(dom_channel.test.ordnet1) %>%
+  dplyr::select(dominance, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class),
+         dominance = as.factor(dominance))
+  
+ggplot(classcumprob_dom_df, aes(x = dominance, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Cumulative Probabilities for Market Dominance", 
+         y = "P(Y<=j)",
+         x= "Market Dominance") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+```
+
+```{r}
+# income
+log_income.test.ordnet1 = as.data.frame(pred_matrix.ordnet1) %>%
+  mutate(pharmacy_num_ptt = 3.038, most_dist_channel = "RETAIL PHARMACY", dominance = "Yes",
+         political_aff = "Republican",
+         act_wt_person_county = 0.19294084,
+         perc_oxy = 54.2, distr_num_ptt = 1.709)
+classprob_log_income <- predict(fit.select, newdata = log_income.test.ordnet1, type = "probs")
+# plotting
+classprob_log_income_df = t(classprob_log_income) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_log_income_df) = NULL
+colnames(classprob_log_income_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_log_income_df = as.data.frame(classprob_log_income_df) %>%
+  cbind(log_income.test.ordnet1) %>%
+  dplyr::select(median_income, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+  
+ggplot(classcumprob_log_income_df, aes(x = median_income, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Cumulative Probabilities for median income", 
+         y = "P(Y<=j)",
+         x= "Median Income") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+```
+
+
+```{r}
+# political_aff
+polaff.test.ordnet1 = as.data.frame(pred_matrix.ordnet1) %>%
+    mutate(pharmacy_num_ptt = 3.038, most_dist_channel = "RETAIL PHARMACY", dominance = "Yes",
+         median_income = 43194.13,
+         act_wt_person_county = 0.19294084,
+         perc_oxy = 54.2, distr_num_ptt = 1.709)
+classprob_polaff <- predict(fit.select, newdata = polaff.test.ordnet1, type = "probs")
+# plotting
+classprob_polaff_df = t(classprob_polaff) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_polaff_df) = NULL
+colnames(classprob_polaff_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_polaff_df = as.data.frame(classprob_polaff_df) %>%
+  cbind(polaff.test.ordnet1) %>%
+  dplyr::select(political_aff, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class),
+         political_aff = as.factor(political_aff))
+  
+ggplot(classcumprob_polaff_df, aes(x = political_aff, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Cumulative Probabilities for Political Affiliation", 
+         y = "P(Y<=j)",
+         x= "Political Affiliation") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+```
+
+
+
+
+```{r}
+# act_wt_person_county
+act_wt.test.ordnet1 = as.data.frame(pred_matrix.ordnet1) %>%
+  mutate(pharmacy_num_ptt = 3.038, most_dist_channel = "RETAIL PHARMACY", dominance = "Yes",
+         median_income = 43194.13,
+         political_aff="Republican",
+         perc_oxy = 54.2, distr_num_ptt = 1.709)
+classprob_act_wt <- predict(fit.select, newdata = act_wt.test.ordnet1, type = "probs")
+# plotting
+classprob_act_wt_df = t(classprob_act_wt) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_act_wt_df) = NULL
+colnames(classprob_act_wt_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_act_wt_df = as.data.frame(classprob_act_wt_df) %>%
+  cbind(act_wt.test.ordnet1) %>%
+  dplyr::select(act_wt_person_county, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+  
+ggplot(classcumprob_act_wt_df, aes(x = act_wt_person_county, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Cumulative Probabilities for Active Weight Per Person", 
+         y = "P(Y<=j)",
+         x= "Active Drug Weight Per Person") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+```
+
+
+```{r}
+# perc_oxy --> NOT SIGNIFICANT IN CURRENT MODEL
+perc_oxy.test.ordnet1 = as.data.frame(pred_matrix.ordnet1) %>%
+  mutate(pharmacy_num_ptt = 3.038, most_dist_channel = "RETAIL PHARMACY", dominance = "Yes",
+         median_income = 43194.13,
+         political_aff="Republican",
+         act_wt_person_county = 0.19294084, distr_num_ptt = 1.709)
+classprob_perc_oxy <- predict(fit.select, newdata = perc_oxy.test.ordnet1, type = "probs")
+# plotting
+classprob_perc_oxy_df = t(classprob_perc_oxy) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_perc_oxy_df) = NULL
+colnames(classprob_perc_oxy_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_perc_oxy_df = as.data.frame(classprob_perc_oxy_df) %>%
+  cbind(perc_oxy.test.ordnet1) %>%
+  dplyr::select(perc_oxy, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+  
+ggplot(classcumprob_perc_oxy_df, aes(x = perc_oxy, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Cumulative Probabilities for Percentage of Oxycodone", 
+         y = "P(Y<=j)",
+         x= "Percentage of Oxycodone") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+```
+
+```{r}
+# distr_num_ptt
+distr_num.test.ordnet1 = as.data.frame(pred_matrix.ordnet1) %>%
+  mutate(pharmacy_num_ptt = 3.038, most_dist_channel = "RETAIL PHARMACY", dominance = "Yes",
+         median_income = 43194.13,
+         political_aff="Republican",
+         act_wt_person_county = 0.19294084)
+classprob_distr_num  <- predict(fit.select, newdata = distr_num.test.ordnet1, type = "probs")
+# plotting
+classprob_distr_num_df = t(classprob_distr_num) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_distr_num_df) = NULL
+colnames(classprob_distr_num_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_distr_num_df = as.data.frame(classprob_distr_num_df) %>%
+  cbind(distr_num.test.ordnet1) %>%
+  dplyr::select(distr_num_ptt, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+  
+ggplot(classcumprob_distr_num_df, aes(x = distr_num_ptt, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Cumulative Probabilities for Distributor Number PTT", 
+         y = "P(Y<=j)",
+         x= "Distributor Number PTT") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+```
+
+
+#### prediction plots for fit.select ON TRAINING DATA
+
+```{r}
+pred_matrix.train <- train_oh_wv_2012 %>%  #x is a matrix of predictors
+  dplyr::select(est_death_rate_cat, pharmacy_num_ptt, most_dist_channel, dominance, median_income,
+                political_aff, act_wt_person_county, distr_num_ptt)
+
+#pharmacy no
+pharm_num.test.ordnet1 = as.data.frame(pred_matrix.train) %>%
+  mutate(most_dist_channel = "RETAIL PHARMACY", dominance = "Yes",
+         median_income = 60000,
+         political_aff="Republican",
+         perc_oxy = 54.2, act_wt_person_county = 0.19294084, distr_num_ptt = 1.709)
+classprob_pharm_num  <- predict(fit.select, newdata = pharm_num.test.ordnet1, type = "probs") #class prob
+# plotting
+classprob_pharm_num_df = t(classprob_pharm_num) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_pharm_num_df) = NULL
+colnames(classprob_pharm_num_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_pharm_num_df = as.data.frame(classprob_pharm_num_df) %>%
+  cbind(pharm_num.test.ordnet1) %>%
+  dplyr::select(pharmacy_num_ptt, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+
+ggplot(classcumprob_pharm_num_df, aes(x = pharmacy_num_ptt, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Cumulative Probabilities for Pharmacy No. \nper ten thousand people, income level = $60000", 
+         y = "P(Y<=j)",
+         x= "Pharmacy Number PTT") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+
+```
+
+```{r}
+# most_dist_channel
+pred_matrix.train <- train_oh_wv_2012 %>%  #x is a matrix of predictors
+  dplyr::select(est_death_rate_cat, pharmacy_num_ptt, most_dist_channel, dominance, median_income,
+                political_aff, act_wt_person_county, distr_num_ptt)
+
+dom_channel.test.ordnet1 = as.data.frame(pred_matrix.train) %>%
+  mutate(pharmacy_num_ptt = 3.038, dominance="Yes", median_income=20000,
+         political_aff = "Republican",
+         act_wt_person_county = 0.19294084,
+         perc_oxy = 54.2, distr_num_ptt = 1.709)
+classprob_most_dist_channel <- predict(fit.select, newdata = dom_channel.test.ordnet1, type = "probs")
+# plotting
+classprob_most_dist_channel_df = t(classprob_most_dist_channel) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_most_dist_channel_df) = NULL
+colnames(classprob_most_dist_channel_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_most_dist_channel_df = as.data.frame(classprob_most_dist_channel_df) %>%
+  cbind(dom_channel.test.ordnet1) %>%
+  dplyr::select(most_dist_channel, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class),
+         most_dist_channel = as.factor(most_dist_channel))
+  
+ggplot(classcumprob_most_dist_channel_df, aes(x = most_dist_channel, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Cumulative Probabilities for most common distribution channel, \nincome = 20000", 
+         y = "P(Y<=j)",
+         x= "most common distribution channel") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+
+#AT HIGHER INCOME LEVEL:
+pred_matrix.train <- train_oh_wv_2012 %>%  #x is a matrix of predictors
+  dplyr::select(est_death_rate_cat, pharmacy_num_ptt, most_dist_channel, dominance, median_income,
+                political_aff, act_wt_person_county, distr_num_ptt)
+
+dom_channel.test.ordnet1 = as.data.frame(pred_matrix.train) %>%
+  mutate(pharmacy_num_ptt = 3.038, dominance="Yes", median_income=60000,
+         political_aff = "Republican",
+         act_wt_person_county = 0.19294084,
+         perc_oxy = 54.2, distr_num_ptt = 1.709)
+classprob_most_dist_channel <- predict(fit.select, newdata = dom_channel.test.ordnet1, type = "probs")
+# plotting
+classprob_most_dist_channel_df = t(classprob_most_dist_channel) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_most_dist_channel_df) = NULL
+colnames(classprob_most_dist_channel_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_most_dist_channel_df = as.data.frame(classprob_most_dist_channel_df) %>%
+  cbind(dom_channel.test.ordnet1) %>%
+  dplyr::select(most_dist_channel, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class),
+         most_dist_channel = as.factor(most_dist_channel))
+  
+ggplot(classcumprob_most_dist_channel_df, aes(x = most_dist_channel, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Cumulative Probabilities for most common distribution channel, \nincome = 60000", 
+         y = "P(Y<=j)",
+         x= "most common distribution channel") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+```
+
+
+```{r}
+# dominance
+summary(fit.select)
+dom_channel.test.ordnet1 = as.data.frame(pred_matrix.train) %>%
+  mutate(pharmacy_num_ptt = 3.038, most_dist_channel = "RETAIL PHARMACY", median_income=43194.13,
+         political_aff = "Republican",
+         act_wt_person_county = 0.19294084,
+         perc_oxy = 54.2, distr_num_ptt = 1.709)
+classprob_dom <- predict(fit.select, newdata = dom_channel.test.ordnet1, type = "probs")
+# plotting
+classprob_dom_df = t(classprob_dom) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_dom_df) = NULL
+colnames(classprob_dom_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_dom_df = as.data.frame(classprob_dom_df) %>%
+  cbind(dom_channel.test.ordnet1) %>%
+  dplyr::select(dominance, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class),
+         dominance = as.factor(dominance))
+  
+ggplot(classcumprob_dom_df, aes(x = dominance, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Cumulative Probabilities for Market Dominance", 
+         y = "P(Y<=j)",
+         x= "Market Dominance") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+```
+
+```{r}
+# income
+summary(fit.select)
+log_income.test.ordnet1 = as.data.frame(pred_matrix.train) %>%
+  mutate(pharmacy_num_ptt = 3.038, most_dist_channel = "RETAIL PHARMACY", dominance = "Yes",
+         political_aff = "Republican",
+         act_wt_person_county = 0.19294084,
+         perc_oxy = 54.2, distr_num_ptt = 1.709)
+classprob_log_income <- predict(fit.select, newdata = log_income.test.ordnet1, type = "probs")
+# plotting
+classprob_log_income_df = t(classprob_log_income) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_log_income_df) = NULL
+colnames(classprob_log_income_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_log_income_df = as.data.frame(classprob_log_income_df) %>%
+  cbind(log_income.test.ordnet1) %>%
+  dplyr::select(median_income, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+  
+ggplot(classcumprob_log_income_df, aes(x = median_income, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Cumulative Probabilities for median income", 
+         y = "P(Y<=j)",
+         x= "Median Income") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+```
+
+
+```{r}
+# political_aff
+polaff.test.ordnet1 = as.data.frame(pred_matrix.train) %>%
+    mutate(pharmacy_num_ptt = 3.038, most_dist_channel = "RETAIL PHARMACY", dominance = "Yes",
+         median_income = 43194.13,
+         act_wt_person_county = 0.19294084,
+         perc_oxy = 54.2, distr_num_ptt = 1.709)
+classprob_polaff <- predict(fit.select, newdata = polaff.test.ordnet1, type = "probs")
+# plotting
+classprob_polaff_df = t(classprob_polaff) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_polaff_df) = NULL
+colnames(classprob_polaff_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_polaff_df = as.data.frame(classprob_polaff_df) %>%
+  cbind(polaff.test.ordnet1) %>%
+  dplyr::select(political_aff, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class),
+         political_aff = as.factor(political_aff))
+  
+ggplot(classcumprob_polaff_df, aes(x = political_aff, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Cumulative Probabilities for Political Affiliation", 
+         y = "P(Y<=j)",
+         x= "Political Affiliation") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+```
+
+```{r}
+# political_aff
+polaff.test.ordnet1 = as.data.frame(pred_matrix.train) %>%
+    mutate(pharmacy_num_ptt = 2, most_dist_channel = "RETAIL PHARMACY", dominance = "Yes",
+         median_income = 43194.13,
+         act_wt_person_county = 0.19294084,
+         perc_oxy = 54.2, distr_num_ptt = 1.709)
+classprob_polaff <- predict(fit.select, newdata = polaff.test.ordnet1, type = "probs")
+# plotting
+classprob_polaff_df = t(classprob_polaff) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_polaff_df) = NULL
+colnames(classprob_polaff_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_polaff_df = as.data.frame(classprob_polaff_df) %>%
+  cbind(polaff.test.ordnet1) %>%
+  dplyr::select(political_aff, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class),
+         political_aff = as.factor(political_aff))
+  
+ggplot(classcumprob_polaff_df, aes(x = political_aff, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Cumulative Probabilities for Political Affiliation, \n pharmacy no./ten thousand =2", 
+         y = "P(Y<=j)",
+         x= "Political Affiliation") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+#change pharm num to 4
+polaff.test.ordnet1 = as.data.frame(pred_matrix.train) %>%
+    mutate(pharmacy_num_ptt = 4, most_dist_channel = "RETAIL PHARMACY", dominance = "Yes",
+         median_income = 43194.13,
+         act_wt_person_county = 0.19294084,
+         perc_oxy = 54.2, distr_num_ptt = 1.709)
+classprob_polaff <- predict(fit.select, newdata = polaff.test.ordnet1, type = "probs")
+# plotting
+classprob_polaff_df = t(classprob_polaff) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_polaff_df) = NULL
+colnames(classprob_polaff_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_polaff_df = as.data.frame(classprob_polaff_df) %>%
+  cbind(polaff.test.ordnet1) %>%
+  dplyr::select(political_aff, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class),
+         political_aff = as.factor(political_aff))
+  
+ggplot(classcumprob_polaff_df, aes(x = political_aff, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Cumulative Probabilities for Political Affiliation, \n pharmacy no./ten thousand =4", 
+         y = "P(Y<=j)",
+         x= "Political Affiliation") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+```
+
+
+
+```{r}
+# act_wt_person_county
+act_wt.test.ordnet1 = as.data.frame(pred_matrix.train) %>%
+  mutate(pharmacy_num_ptt = 3.038, most_dist_channel = "RETAIL PHARMACY", dominance = "Yes",
+         median_income = 43194.13,
+         political_aff="Republican",
+         perc_oxy = 54.2, distr_num_ptt = 1.709)
+classprob_act_wt <- predict(fit.select, newdata = act_wt.test.ordnet1, type = "probs")
+# plotting
+classprob_act_wt_df = t(classprob_act_wt) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_act_wt_df) = NULL
+colnames(classprob_act_wt_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_act_wt_df = as.data.frame(classprob_act_wt_df) %>%
+  cbind(act_wt.test.ordnet1) %>%
+  dplyr::select(act_wt_person_county, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+  
+ggplot(classcumprob_act_wt_df, aes(x = act_wt_person_county, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Cumulative Probabilities for Active Weight Per Person", 
+         y = "P(Y<=j)",
+         x= "Active Drug Weight Per Person") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+```
+
+```{r}
+# distr_num_ptt
+distr_num.test.ordnet1 = as.data.frame(pred_matrix.train) %>%
+  mutate(pharmacy_num_ptt = 3.038, most_dist_channel = "RETAIL PHARMACY", dominance = "Yes",
+         median_income = 43194.13,
+         political_aff="Republican",
+         act_wt_person_county = 0.19294084)
+classprob_distr_num  <- predict(fit.select, newdata = distr_num.test.ordnet1, type = "probs")
+# plotting
+classprob_distr_num_df = t(classprob_distr_num) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_distr_num_df) = NULL
+colnames(classprob_distr_num_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_distr_num_df = as.data.frame(classprob_distr_num_df) %>%
+  cbind(distr_num.test.ordnet1) %>%
+  dplyr::select(distr_num_ptt, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+  
+ggplot(classcumprob_distr_num_df, aes(x = distr_num_ptt, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Cumulative Probabilities for Distributor Number PTT \n at median income $20000", 
+         y = "P(Y<=j)",
+         x= "Distributor Number PTT") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+```
+
+
+#### interaction plots for fit.select ON TRAINING DATA 
+
+```{r}
+## number of pharmacies and political affilition
+# Republican
+
+pharm_num.test.ordnet1_rep = as.data.frame(pred_matrix.train) %>%
+  mutate(most_dist_channel = "RETAIL PHARMACY", dominance = "Yes",
+         median_income = 43194.13,
+         political_aff="Republican",
+         perc_oxy = 54.2, act_wt_person_county = 0.19294084, distr_num_ptt = 1.709)
+
+classprob_pharm_num_rep  <- predict(fit.select, newdata = pharm_num.test.ordnet1_rep, type = "probs", se.fit = TRUE)
+# plotting
+classprob_pharm_num_rep_df = t(classprob_pharm_num_rep) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_pharm_num_rep_df) = NULL
+colnames(classprob_pharm_num_rep_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_pharm_num_rep_df = as.data.frame(classprob_pharm_num_rep_df) %>%
+  cbind(pharm_num.test.ordnet1_rep) %>%
+  dplyr::select(pharmacy_num_ptt, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+  
+num_pharm_rep_p = ggplot(classcumprob_pharm_num_rep_df, aes(x = pharmacy_num_ptt, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Republican", 
+         y = "P(Y<=j)",
+         x= "Pharmacy Number PTT") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+
+# Democrat
+pharm_num.test.ordnet1_dem = as.data.frame(pred_matrix.train) %>%
+  mutate(most_dist_channel = "RETAIL PHARMACY", dominance = "Yes",
+         median_income = 43194.13,
+         political_aff="Democrat",
+         perc_oxy = 54.2, act_wt_person_county = 0.19294084, distr_num_ptt = 1.709)
+
+classprob_pharm_num_dem  <- predict(fit.select, newdata = pharm_num.test.ordnet1_dem, type = "probs", se.fit = TRUE)
+# plotting
+classprob_pharm_num_dem_df = t(classprob_pharm_num_dem) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_pharm_num_dem_df) = NULL
+colnames(classprob_pharm_num_dem_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_pharm_num_dem_df = as.data.frame(classprob_pharm_num_dem_df) %>%
+  cbind(pharm_num.test.ordnet1_dem) %>%
+  dplyr::select(pharmacy_num_ptt, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+  
+num_pharm_dem_p = ggplot(classcumprob_pharm_num_dem_df, aes(x = pharmacy_num_ptt, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Democrat",
+         y = "P(Y<=j)",
+         x= "Pharmacy Number PTT") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank(),
+          legend.position = "none")
+
+#num_pharm_rep_p + num_pharm_dem_p
+plot_grid(num_pharm_rep_p, num_pharm_dem_p, axis = "r", align = "v")
+
+# probability of falling below a category decreases faster for democrats. is
+# significant? because our dataset is small.
+```
+
+```{r}
+## distribution channel and income
+
+# RETAIL PHARMACRY
+income.test.ordnet1_rp = as.data.frame(pred_matrix.train) %>%
+  mutate(most_dist_channel = "RETAIL PHARMACY", dominance = "Yes",
+         pharmacy_num_ptt = 3.038,
+         political_aff="Republican",
+         perc_oxy = 54.2, act_wt_person_county = 0.19294084, distr_num_ptt = 1.709)
+
+classprob_income_rp  <- predict(fit.select, newdata = income.test.ordnet1_rp, type = "probs", se.fit = TRUE)
+# plotting
+classprob_income_rp_df = t(classprob_income_rp) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_income_rp_df) = NULL
+colnames(classprob_income_rp_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_income_rp_df = as.data.frame(classprob_income_rp_df) %>%
+  cbind(income.test.ordnet1_rp) %>%
+  dplyr::select(median_income, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+  
+income_rp_p = ggplot(classcumprob_income_rp_df, aes(x = median_income, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Retail Pharmacy", 
+         y = "P(Y<=j)",
+         x= "Median Income") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+
+# CHAIN PHARMACRY
+income.test.ordnet1_cp = as.data.frame(pred_matrix.ordnet1) %>%
+  mutate(most_dist_channel = "CHAIN PHARMACY", dominance = "Yes",
+         pharmacy_num_ptt = 3.038,
+         political_aff="Republican",
+         perc_oxy = 54.2, act_wt_person_county = 0.19294084, distr_num_ptt = 1.709)
+
+classprob_income_cp  <- predict(fit.select, newdata = income.test.ordnet1_cp, type = "probs", se.fit = TRUE)
+# plotting
+classprob_income_cp_df = t(classprob_income_cp) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_income_cp_df) = NULL
+colnames(classprob_income_cp_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_income_cp_df = as.data.frame(classprob_income_cp_df) %>%
+  cbind(income.test.ordnet1_cp) %>%
+  dplyr::select(median_income, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+  
+income_cp_p = ggplot(classcumprob_income_cp_df, aes(x = median_income, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Chain Pharmacy", 
+         y = "P(Y<=j)",
+         x= "Median Income") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank(),
+          legend.position = "none")
+
+plot_grid(income_rp_p, income_cp_p, axis = "r", align = "v")
+```
+
+```{r}
+#pharm num at 2 and 4 for chain
+income.test.ordnet1_cp = as.data.frame(pred_matrix.train) %>%
+  mutate(most_dist_channel = "CHAIN PHARMACY", dominance = "Yes",
+         pharmacy_num_ptt = 2,
+         political_aff="Republican",
+         perc_oxy = 54.2, act_wt_person_county = 0.19294084, distr_num_ptt = 1.709)
+
+classprob_income_cp  <- predict(fit.select, newdata = income.test.ordnet1_cp, type = "probs", se.fit = TRUE)
+# plotting
+classprob_income_cp_df = t(classprob_income_cp) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_income_cp_df) = NULL
+colnames(classprob_income_cp_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_income_cp_df = as.data.frame(classprob_income_cp_df) %>%
+  cbind(income.test.ordnet1_cp) %>%
+  dplyr::select(median_income, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+  
+income_cp_p.pharm2 = ggplot(classcumprob_income_cp_df, aes(x = median_income, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Median Income, \n Chain Pharmacy, 2 Pharmacies PTT", 
+         y = "P(Y<=j)",
+         x= "Median Income") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+
+
+income.test.ordnet1_cp = as.data.frame(pred_matrix.train) %>%
+  mutate(most_dist_channel = "CHAIN PHARMACY", dominance = "Yes",
+         pharmacy_num_ptt = 4,
+         political_aff="Republican",
+         perc_oxy = 54.2, act_wt_person_county = 0.19294084, distr_num_ptt = 1.709)
+
+classprob_income_cp  <- predict(fit.select, newdata = income.test.ordnet1_cp, type = "probs", se.fit = TRUE)
+# plotting
+classprob_income_cp_df = t(classprob_income_cp) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_income_cp_df) = NULL
+colnames(classprob_income_cp_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_income_cp_df = as.data.frame(classprob_income_cp_df) %>%
+  cbind(income.test.ordnet1_cp) %>%
+  dplyr::select(median_income, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+  
+income_cp_p.pharm4 = ggplot(classcumprob_income_cp_df, aes(x = median_income, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Median Income, \n Chain Pharmacy, 4 Pharmacies PTT", 
+         y = "P(Y<=j)",
+         x= "Median Income") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+
+plot_grid(income_cp_p.pharm2, income_cp_p.pharm4)
+income_cp_p.pharm2
+income_cp_p.pharm4
+
+income.test.ordnet1_cp = as.data.frame(pred_matrix.train) %>%
+  mutate(most_dist_channel = "RETAIL PHARMACY", dominance = "Yes",
+         pharmacy_num_ptt = 3.5,
+         political_aff="Republican",
+         perc_oxy = 54.2, act_wt_person_county = 0.19294084, distr_num_ptt = 1.709)
+
+classprob_income_cp  <- predict(fit.select, newdata = income.test.ordnet1_cp, type = "probs", se.fit = TRUE)
+# plotting
+classprob_income_cp_df = t(classprob_income_cp) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_income_cp_df) = NULL
+colnames(classprob_income_cp_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_income_cp_df = as.data.frame(classprob_income_cp_df) %>%
+  cbind(income.test.ordnet1_cp) %>%
+  dplyr::select(median_income, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+  
+income_cp_p.retail.3.5 = ggplot(classcumprob_income_cp_df, aes(x = median_income, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Median Income, \n Retail Pharmacy, 3.5 Pharmacies PTT", 
+         y = "P(Y<=j)",
+         x= "Median Income") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+income_cp_p.retail.3.5
+
+```
+
+
+
+```{r}
+## pharmacy number and log median income
+# range of pharmacy number ptt: 0.928 4.850
+
+# fixing pharmacy number at = 1
+income.test.ordnet1_1 = as.data.frame(pred_matrix.train) %>%
+  mutate(most_dist_channel = "RETAIL PHARMACY", dominance = "Yes",
+         pharmacy_num_ptt = 1,
+         political_aff="Republican",
+         perc_oxy = 54.2, act_wt_person_county = 0.19294084, distr_num_ptt = 1.709)
+
+classprob_income_1  <- predict(fit.select, newdata = income.test.ordnet1_1, type = "probs", se.fit = TRUE)
+# plotting
+classprob_income_1_df = t(classprob_income_1) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_income_1_df) = NULL
+colnames(classprob_income_1_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_income_1_df = as.data.frame(classprob_income_1_df) %>%
+  cbind(income.test.ordnet1_1) %>%
+  dplyr::select(median_income, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+  
+income_1_p = ggplot(classcumprob_income_1_df, aes(x = median_income, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Pharmacy Number PTT = 1", 
+         y = "P(Y<=j)",
+         x= "Median Income") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+
+# fixing pharmacy number at = 4
+income.test.ordnet1_4 = as.data.frame(pred_matrix.ordnet1) %>%
+  mutate(most_dist_channel = "CHAIN PHARMACY", dominance = "Yes",
+         pharmacy_num_ptt = 4,
+         political_aff="Republican",
+         perc_oxy = 54.2, act_wt_person_county = 0.19294084, distr_num_ptt = 1.709)
+
+classprob_income_4  <- predict(fit.select, newdata = income.test.ordnet1_4, type = "probs", se.fit = TRUE)
+# plotting
+classprob_income_4_df = t(classprob_income_4) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_income_4_df) = NULL
+colnames(classprob_income_4_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_income_4_df = as.data.frame(classprob_income_4_df) %>%
+  cbind(income.test.ordnet1_4) %>%
+  dplyr::select(median_income, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+  
+income_4_p = ggplot(classcumprob_income_4_df, aes(x = median_income, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Pharmacy Number PTT = 4", 
+         y = "P(Y<=j)",
+         x= "Median Income") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank(),
+          legend.position = "none")
+
+#income_1_p + income_4_p
+plot_grid(income_1_p, income_4_p, axis = "r", align = "v")
+```
+
+##Check proportional odds assumption
+```{r}
+summary(fit.select)
+cumu.logistic.select = nnet::multinom(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + 
+    dominance + log(median_income) + political_aff + act_wt_person_county + 
+    pharmacy_num_ptt:political_aff + most_dist_channel:log(median_income) + 
+    pharmacy_num_ptt:log(median_income), data = train_oh_wv_2012)
+knitr::kable(cumu.logistic.select%>% tidy(conf.int=TRUE),format="html",digits=3)
+```
+
+
