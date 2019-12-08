@@ -358,21 +358,26 @@ ggplot(data = train_oh_wv_2012,
 
 ## Modeling
 
-### Regular Logistic Regression
+## Logistic Regression (multinomial and cumulative logit)
+
+### Regular Multinomial Logistic Regression
 ```{r}
-# with interactions
+# without interactions
 fit0 <- nnet::multinom(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt, data=train_oh_wv_2012)
 summary(fit0)
+```
 
+
+```{r}
 # with interactions
 fit0.interact <- nnet::multinom(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt + log(median_income)*political_aff+act_wt_person_county*distr_num_ptt+act_wt_person_county*pharmacy_num_ptt+pharmacy_num_ptt*political_aff+log(median_income)*most_dist_channel+log(median_income)*pharmacy_num_ptt+perc_oxy*dominance+act_wt_person_county*perc_oxy, data=train_oh_wv_2012)
 summary(fit0.interact)
 ```
 
-
-### Cumulative logistic regression
 ```{r}
-### cumulative logistic regression
+# fit0 and cumu.logistic are the SAME
+############################################################################
+
 cumu.logistic = nnet::multinom(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt, data=train_oh_wv_2012)
 summary(cumu.logistic)
 mostImportantVariables <- varImp(cumu.logistic)
@@ -383,33 +388,8 @@ knitr::kable(cumu.logistic %>% tidy(conf.int=TRUE),format="html",digits=3)
 ```
 
 ```{r}
-### polyr 
-library(MASS)
-fit1<-polr(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt, data=train_oh_wv_2012, Hess=TRUE, method="logistic")
-summary(fit1)
-(ctable <- coef(summary(fit1)))
-## calculate and store p values
-p <- pnorm(abs(ctable[, "t value"]), lower.tail = FALSE) * 2
-
-## combined table
-(ctable <- cbind(ctable, "p value" = p))
-#not significant at p=0.05: most dist channel retail, perc_oxy
-```
-
-#### Model with interactions 
-```{r}
-### polyr with interactions
-fit1_interact<-polr(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt + log(median_income)*political_aff+act_wt_person_county*distr_num_ptt+act_wt_person_county*pharmacy_num_ptt+pharmacy_num_ptt*political_aff+log(median_income)*most_dist_channel+log(median_income)*pharmacy_num_ptt+perc_oxy*dominance+act_wt_person_county*perc_oxy, data=train_oh_wv_2012, Hess=TRUE, method="logistic")
-summary(fit1_interact)
-(ctable.interact.1 <- coef(summary(fit1_interact)))
-## calculate and store p values
-p1.interact <- pnorm(abs(ctable.interact.1[, "t value"]), lower.tail = FALSE) * 2
-
-## combined table
-(ctable.interact.1 <- cbind(ctable.interact.1, "p value" = p1.interact))
-#not significant at p=0.05: political aff republican, active weight pp county, perc, oxy, distr_num_ptt, income*political, act weight * no. of dist., pharmacy nu * active weight, pharmacy num * political, dominance yes: perc_oxy, active weight* oxy 
-
-#sig ones: dist channel retail * income, pharmacy*income
+# fit0.interact and fit1_interact_ord are the SAME
+##########################################################################
 
 ##ordinal with interactions
 fit1_interact_ord<-nnet::multinom(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt + log(median_income)*political_aff+act_wt_person_county*distr_num_ptt+act_wt_person_county*pharmacy_num_ptt+pharmacy_num_ptt*political_aff+log(median_income)*most_dist_channel+log(median_income)*pharmacy_num_ptt+perc_oxy*dominance+act_wt_person_county*perc_oxy, data=train_oh_wv_2012)
@@ -420,7 +400,37 @@ mostImportantVariables.ord.interact <- mostImportantVariables.ord.interact[order
 print(head(mostImportantVariables.ord.interact))
 knitr::kable(fit1_interact_ord %>% tidy(conf.int=TRUE),format="html",digits=3)
 ```
-### Backward selection to get lowest AIC (cumulative logit with interactions)
+
+### Cumulative logistic regression
+
+```{r}
+### polyr 
+library(MASS)
+fit1<-polr(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt, data=train_oh_wv_2012, Hess=TRUE, method="logistic")
+summary(fit1)
+ctable <- coef(summary(fit1))
+## calculate and store p values
+p <- pnorm(abs(ctable[, "t value"]), lower.tail = FALSE) * 2
+
+## combined table
+(ctable <- cbind(ctable, "p value" = p))
+#not significant at p=0.05: most dist channel retail, perc_oxy
+```
+
+
+```{r}
+### polyr with interactions
+fit1_interact<-polr(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt + log(median_income)*political_aff+act_wt_person_county*distr_num_ptt+act_wt_person_county*pharmacy_num_ptt+pharmacy_num_ptt*political_aff+log(median_income)*most_dist_channel+log(median_income)*pharmacy_num_ptt+perc_oxy*dominance+act_wt_person_county*perc_oxy, data=train_oh_wv_2012, Hess=TRUE, method="logistic")
+summary(fit1_interact)
+ctable.interact.1 <- coef(summary(fit1_interact))
+## calculate and store p values
+p1.interact <- pnorm(abs(ctable.interact.1[, "t value"]), lower.tail = FALSE) * 2
+
+## combined table
+(ctable.interact.1 <- cbind(ctable.interact.1, "p value" = p1.interact))
+```
+
+### Backward selection to get lowest AIC (cumulative logit with interactions) - FINAL MODEL
 ```{r}
 ## fit significant predictors and interations with cumulative logit
 fit.select <- stepAIC(fit1_interact, trace = FALSE)
@@ -431,7 +441,6 @@ ctable.interact.2 <- coef(summary(fit.select))
 p2.interact <- pnorm(abs(ctable.interact.2[, "t value"]), lower.tail = FALSE) * 2
 (ctable.interact.2 <- cbind(ctable.interact.2, "p value" = p2.interact))
 ```
-
 
 ### Tree Models
 ```{r}
