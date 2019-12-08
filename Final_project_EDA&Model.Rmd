@@ -167,41 +167,6 @@ train_oh_wv_2012 %>%
   
 ```
 
-#### Response: Median Income - IGNORE THIS MODEL FIRST
-
-```{r eval=FALSE}
-oh_wv_2012 %>%
-  ggplot(mapping = aes(x = Political.affiliation, y = median_income)) + geom_boxplot() + xlab("Political Affiliation") + ylab("Median Income")
-
-oh_wv_2012 %>%
-  ggplot(mapping = aes(x = dominance, y = median_income)) + geom_boxplot() + xlab("Dominance") + ylab("Median Income")
-
-
-oh_wv_2012 %>%
-  ggplot(mapping = aes(x = all_active_wt , y = median_income)) + geom_point()  + xlab("All Active Weight") + ylab("Median Income")
-
-med_inc_mod3 <- lm(median_income ~ all_active_wt, data = oh_wv_2012)
-plot(med_inc_mod3)
-
-
-oh_wv_2012 %>%
-  ggplot(mapping = aes(x = most_dist_channel , y = median_income)) +  geom_boxplot()  + xlab(" Most Distributed Channel") + ylab("Median Income")
-
-oh_wv_2012 %>%
-  ggplot(mapping = aes(x = pharmacy_num , y = median_income)) + geom_point()  + xlab("Number of Pharamacies") + ylab("Median Income")
-
-med_inc_mod6 <- lm(median_income ~ pharmacy_num, data = oh_wv_2012)
-plot(med_inc_mod6)
-
-
-oh_wv_2012 %>%
-  ggplot(mapping = aes(x = Population , y = median_income)) + geom_point()  + xlab("Population") + ylab("Median Income")
-
-med_inc_mod7 <- lm(median_income ~ Population, data = oh_wv_2012)
-plot(med_inc_mod7)
-
-```
-
 ### Plot predictors against each other (Interactions)
 ```{r}
 # number of manufactueres (ptt) vs death rate by number of pharmacies (ptt)
@@ -407,13 +372,13 @@ summary(fit0.interact)
 
 ### Cumulative logistic regression
 ```{r}
-### cumulative logistic regression, HIGHER AIC, BETTER THAN PROP.
+### cumulative logistic regression
 cumu.logistic = nnet::multinom(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt, data=train_oh_wv_2012)
 summary(cumu.logistic)
 mostImportantVariables <- varImp(cumu.logistic)
 mostImportantVariables$Variables <- row.names(mostImportantVariables)
 mostImportantVariables <- mostImportantVariables[order(-mostImportantVariables$Overall),]
-print(head(mostImportantVariables))
+print(mostImportantVariables)
 knitr::kable(cumu.logistic %>% tidy(conf.int=TRUE),format="html",digits=3)
 ```
 
@@ -433,7 +398,7 @@ p <- pnorm(abs(ctable[, "t value"]), lower.tail = FALSE) * 2
 
 #### Model with interactions 
 ```{r}
-### polyr with interactions, 268.1159
+### polyr with interactions
 fit1_interact<-polr(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt + log(median_income)*political_aff+act_wt_person_county*distr_num_ptt+act_wt_person_county*pharmacy_num_ptt+pharmacy_num_ptt*political_aff+log(median_income)*most_dist_channel+log(median_income)*pharmacy_num_ptt+perc_oxy*dominance+act_wt_person_county*perc_oxy, data=train_oh_wv_2012, Hess=TRUE, method="logistic")
 summary(fit1_interact)
 (ctable.interact.1 <- coef(summary(fit1_interact)))
@@ -446,7 +411,7 @@ p1.interact <- pnorm(abs(ctable.interact.1[, "t value"]), lower.tail = FALSE) * 
 
 #sig ones: dist channel retail * income, pharmacy*income
 
-##ordinal with interactions AIC: 317.8469
+##ordinal with interactions
 fit1_interact_ord<-nnet::multinom(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt + log(median_income)*political_aff+act_wt_person_county*distr_num_ptt+act_wt_person_county*pharmacy_num_ptt+pharmacy_num_ptt*political_aff+log(median_income)*most_dist_channel+log(median_income)*pharmacy_num_ptt+perc_oxy*dominance+act_wt_person_county*perc_oxy, data=train_oh_wv_2012)
 summary(fit1_interact_ord)
 mostImportantVariables.ord.interact <- varImp(fit1_interact_ord)
@@ -454,6 +419,17 @@ mostImportantVariables.ord.interact$Variables <- row.names(mostImportantVariable
 mostImportantVariables.ord.interact <- mostImportantVariables.ord.interact[order(-mostImportantVariables.ord.interact$Overall),]
 print(head(mostImportantVariables.ord.interact))
 knitr::kable(fit1_interact_ord %>% tidy(conf.int=TRUE),format="html",digits=3)
+```
+### Backward selection to get lowest AIC (cumulative logit with interactions)
+```{r}
+## fit significant predictors and interations with cumulative logit
+fit.select <- stepAIC(fit1_interact, trace = FALSE)
+summary(fit.select)
+
+ctable.interact.2 <- coef(summary(fit.select))
+## calculate and store p values
+p2.interact <- pnorm(abs(ctable.interact.2[, "t value"]), lower.tail = FALSE) * 2
+(ctable.interact.2 <- cbind(ctable.interact.2, "p value" = p2.interact))
 ```
 
 
