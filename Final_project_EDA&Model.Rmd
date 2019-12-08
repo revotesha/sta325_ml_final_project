@@ -13,6 +13,14 @@ library(cowplot)
 library(janitor)
 library(nnet)
 library(caret)
+library(glm.predict)
+if("patchwork" %in% installed.packages() == FALSE){
+  if("devtools" %in% installed.packages() == FALSE){
+    install.packages("devtools")}
+  library(devtools)
+  devtools::install_github("thomasp85/patchwork")
+}
+library(patchwork)
 library(broom)
 library(tree)
 library(brms)
@@ -40,13 +48,10 @@ summary(train_oh_wv_2012)
 death_rate_p = ggplot(train_oh_wv_2012, aes(x = imput_est_death_rate_num)) +
   geom_histogram() +
   labs(x = "Estimated death rate")
-
 tdeath_rate_p = ggplot(train_oh_wv_2012, aes(x = log(imput_est_death_rate_num))) +
   geom_histogram() +
   labs(x = "log of xsEstimated death rate")
-
 plot_grid(death_rate_p,tdeath_rate_p)
-
 # death rate - categorial
 ggplot(train_oh_wv_2012)+
   geom_bar(aes(x = est_death_rate_cat)) +
@@ -64,7 +69,6 @@ thyd_wt_p = ggplot(train_oh_wv_2012, aes(x = log(hyd_wt))) +
   geom_histogram() +
   labs(x = "Log Total Active Weight for Hydrocodone")
 plot_grid(hyd_wt_p, thyd_wt_p)
-
 # % hydrocodone 
 hyd_perc_p = ggplot(train_oh_wv_2012, aes(perc_hyd))+
   geom_histogram()
@@ -82,7 +86,6 @@ toxy_wt_p = ggplot(train_oh_wv_2012, aes(x = log(oxy_wt))) +
   geom_histogram() +
   labs(x = "Log Total Active Weight for Oxycodone")
 plot_grid(oxy_wt_p, toxy_wt_p)
-
 # % oxycodone
 oxy_perc_p = ggplot(train_oh_wv_2012, aes(perc_oxy))+
   geom_histogram() +
@@ -146,22 +149,18 @@ ggplot(data = train_oh_wv_2012, aes(x = est_death_rate_cat, y = Population)) +
   geom_boxplot()+ 
   labs(x = "Estimated Death Rate Category", ylab = "County Population",
         main = "Death Rate Category vs County Population") 
-
 ggplot(data = train_oh_wv_2012, aes(x = est_death_rate_cat, y = pharmacy_num_ptt)) + 
   geom_boxplot() + 
   labs(x = "Estimated Death Rate Category", 
        y = "Number of Pharmacies", 
        main = "Death Rate Category vs Number of Pharmacies per 10,000 Population") 
-
 ggplot(data = train_oh_wv_2012, aes(x = est_death_rate_cat, y = distr_num_ptt)) +
   geom_boxplot() +
   labs(x = "Death Rate Category", y = "Number of manufacturers involved",
        title = "County death rate vs Number of Manufacturers")
-
 #####################################################################################
 ggplot(data = train_oh_wv_2012, aes(x = all_active_wt, y = est_death_rate_cat)) + 
   geom_boxplot() + xlab("Active weight total") + ylab("Estimated Death Rate Category") 
-
 train_oh_wv_2012 %>%
   ggplot(aes(x = most_dist_channel, y = est_death_rate_cat)) + geom_boxplot() + xlab("Most Distributed Channel") + ylab("Estimated Death Rate Category") 
   
@@ -181,7 +180,6 @@ ggplot(train_oh_wv_2012,
 ggplot(train_oh_wv_2012,
        aes(x = distr_num_ptt, y = pharmacy_num_ptt))+
   geom_point()
-
 # % oxycodone vs death rate by number of pharmacies (ptt)
 ggplot(train_oh_wv_2012,
        aes(x = perc_oxy, y = as.numeric(est_death_rate_cat), color = pharmacy_num_ptt)) +
@@ -191,11 +189,9 @@ ggplot(train_oh_wv_2012,
        x = "Percentage Oxycodone",
        y = "Estimated Death Rate Category",
        color = "Number of Pharmacies \nper 10,000 People")
-
 ggplot(train_oh_wv_2012,
        aes(x = perc_oxy, y = pharmacy_num_ptt))+
   geom_point()
-
 # % oxycodone vs death rate by number of manufacturers
 ggplot(train_oh_wv_2012,
        aes(x = perc_oxy, y = as.numeric(est_death_rate_cat), color = distr_num_ptt)) +
@@ -205,11 +201,9 @@ ggplot(train_oh_wv_2012,
        x = "Percentage Oxycodone",
        y = "Estimated Death Rate Category",
        color = "Number of Drug Manufacturers")
-
 ggplot(train_oh_wv_2012,
        aes(x = perc_oxy, y = distr_num_ptt))+
   geom_point()
-
 # active weight per person vs number of pharmacies
 ggplot(train_oh_wv_2012,
        aes(x = act_wt_person_county, y = as.numeric(est_death_rate_cat), color = pharmacy_num_ptt)) +
@@ -220,7 +214,6 @@ ggplot(train_oh_wv_2012,
        y = "Estimated Death Rate Category",
        color = "Number of Pharmacies \nper 10,000 People")
   
-
 # number of manufacturers vs active weight per person
 ggplot(train_oh_wv_2012,
        aes(x = act_wt_person_county, y = as.numeric(est_death_rate_cat), color = distr_num_ptt)) +
@@ -230,11 +223,9 @@ ggplot(train_oh_wv_2012,
        x = "Active weight per person",
        y = "Estimated Death Rate Category",
        color = "Number of Drug Manufacturers")
-
 ggplot(train_oh_wv_2012,
        aes(x = act_wt_person_county, y = distr_num_ptt))+
   geom_point()
-
 # income vs number of pharmacies
 ggplot(train_oh_wv_2012,
        aes(x = median_income, y = as.numeric(est_death_rate_cat), color = pharmacy_num_ptt)) +
@@ -365,10 +356,13 @@ ggplot(data = train_oh_wv_2012,
 # without interactions
 fit0 <- nnet::multinom(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt, data=train_oh_wv_2012)
 summary(fit0)
+<<<<<<< HEAD
 ```
 
 
 ```{r}
+=======
+>>>>>>> 4d08d1cafed0dd9abd2bc79ba875c4b3e3e644f2
 # with interactions
 fit0.interact <- nnet::multinom(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt + log(median_income)*political_aff+act_wt_person_county*distr_num_ptt+act_wt_person_county*pharmacy_num_ptt+pharmacy_num_ptt*political_aff+log(median_income)*most_dist_channel+log(median_income)*pharmacy_num_ptt+perc_oxy*dominance+act_wt_person_county*perc_oxy, data=train_oh_wv_2012)
 summary(fit0.interact)
@@ -411,7 +405,6 @@ summary(fit1)
 ctable <- coef(summary(fit1))
 ## calculate and store p values
 p <- pnorm(abs(ctable[, "t value"]), lower.tail = FALSE) * 2
-
 ## combined table
 (ctable <- cbind(ctable, "p value" = p))
 #not significant at p=0.05: most dist channel retail, perc_oxy
@@ -425,9 +418,21 @@ summary(fit1_interact)
 ctable.interact.1 <- coef(summary(fit1_interact))
 ## calculate and store p values
 p1.interact <- pnorm(abs(ctable.interact.1[, "t value"]), lower.tail = FALSE) * 2
-
 ## combined table
 (ctable.interact.1 <- cbind(ctable.interact.1, "p value" = p1.interact))
+<<<<<<< HEAD
+=======
+#not significant at p=0.05: political aff republican, active weight pp county, perc, oxy, distr_num_ptt, income*political, act weight * no. of dist., pharmacy nu * active weight, pharmacy num * political, dominance yes: perc_oxy, active weight* oxy 
+#sig ones: dist channel retail * income, pharmacy*income
+##ordinal with interactions
+fit1_interact_ord<-nnet::multinom(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt + log(median_income)*political_aff+act_wt_person_county*distr_num_ptt+act_wt_person_county*pharmacy_num_ptt+pharmacy_num_ptt*political_aff+log(median_income)*most_dist_channel+log(median_income)*pharmacy_num_ptt+perc_oxy*dominance+act_wt_person_county*perc_oxy, data=train_oh_wv_2012)
+summary(fit1_interact_ord)
+mostImportantVariables.ord.interact <- varImp(fit1_interact_ord)
+mostImportantVariables.ord.interact$Variables <- row.names(mostImportantVariables.ord.interact)
+mostImportantVariables.ord.interact <- mostImportantVariables.ord.interact[order(-mostImportantVariables.ord.interact$Overall),]
+print(head(mostImportantVariables.ord.interact))
+knitr::kable(fit1_interact_ord %>% tidy(conf.int=TRUE),format="html",digits=3)
+>>>>>>> 4d08d1cafed0dd9abd2bc79ba875c4b3e3e644f2
 ```
 
 ### Backward selection to get lowest AIC (cumulative logit with interactions) - FINAL MODEL
@@ -435,7 +440,6 @@ p1.interact <- pnorm(abs(ctable.interact.1[, "t value"]), lower.tail = FALSE) * 
 ## fit significant predictors and interations with cumulative logit
 fit.select <- stepAIC(fit1_interact, trace = FALSE)
 summary(fit.select)
-
 ctable.interact.2 <- coef(summary(fit.select))
 ## calculate and store p values
 p2.interact <- pnorm(abs(ctable.interact.2[, "t value"]), lower.tail = FALSE) * 2
@@ -447,22 +451,18 @@ p2.interact <- pnorm(abs(ctable.interact.2[, "t value"]), lower.tail = FALSE) * 
 pred_matrix <- train_oh_wv_2012 %>%  # a matrix of predictors
   mutate(log_income = log(median_income)) %>%
   dplyr::select(est_death_rate_cat, pharmacy_num_ptt, most_dist_channel, dominance, log_income,  political_aff, act_wt_person_county, perc_oxy, distr_num_ptt)
-
 ## Classification tree model 
 set.seed(1)
 classtree <- tree(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) + political_aff + act_wt_person_county + perc_oxy + distr_num_ptt, data=train_oh_wv_2012)
 summary(classtree)
 plot(classtree) 
 text(classtree, pretty = 0) # The most important predictor is pharmacy-num-ptt
-
 deathrate.test <- test_oh_wv_2012$est_death_rate_cat
 classtree.pred <- predict(classtree, test_oh_wv_2012, type = "class") 
 table(classtree.pred, deathrate.test)
 sum(diag(table(classtree.pred, deathrate.test)))/36 # correctly classified ~36%.
-
 library(e1071)
 caret::confusionMatrix(classtree.pred, deathrate.test)
-
 library(mltest)
 ml_test(classtree.pred, deathrate.test, output.as.table = FALSE)
 ```
@@ -476,12 +476,10 @@ cv.classtree
 par(mfrow = c(1,2))
 plot(cv.classtree$size, cv.classtree$dev, type = "b") # lowest cv-error is when #nodes = 6
 plot(cv.classtree$k, cv.classtree$dev, type = "b")
-
 prune.classtree <- prune.misclass(classtree, best = 3) 
 plot(prune.classtree)
 text(prune.classtree, pretty = 0)
 prunetree.pred <- predict(prune.classtree, newdata = test_oh_wv_2012, type = "class") 
-
 table(prunetree.pred, deathrate.test)
 sum(diag(table(prunetree.pred, deathrate.test)))/36 # correctly classified ~38.8%
 ```
@@ -492,11 +490,9 @@ library(randomForest)
 set.seed(4)
 bagtree <- randomForest(est_death_rate_cat ~., data = pred_matrix, mtry = 8, importance = TRUE, ntree = 25)
 bagtree
-
 bag.test <- test_oh_wv_2012 %>%
 mutate(log_income = log(median_income)) %>%
 dplyr::select(est_death_rate_cat, pharmacy_num_ptt, most_dist_channel, dominance, log_income, political_aff, act_wt_person_county, perc_oxy, distr_num_ptt)
-
 bagtree.pred <- predict(bagtree, newdata = bag.test) 
 table(bagtree.pred, deathrate.test)
 sum(diag(table(bagtree.pred, deathrate.test)))/36 # correctly classified ~36%
@@ -507,12 +503,9 @@ sum(diag(table(bagtree.pred, deathrate.test)))/36 # correctly classified ~36%
 set.seed(5)
 rf.tree <- randomForest(est_death_rate_cat ~., data = pred_matrix, mtry = 3, importance = TRUE)
 rf.tree
-
-
 rf.pred <- predict(rf.tree, newdata = bag.test) 
 table(rf.pred, deathrate.test)
 sum(diag(table(rf.pred, deathrate.test)))/36 # correctly classified ~41.6%
-
 importance(rf.tree) # log_income and act_wt_person are most important predictors
 varImpPlot(rf.tree)
 ```
@@ -541,10 +534,8 @@ class(x)
 ordnet1 <- ordinalNet(x, y, family="cumulative", link="logit",
                    parallelTerms=TRUE, nonparallelTerms=TRUE, alpha=1, # alpha = 1 means Lasso
                    standardize = TRUE)
-
 summary(ordnet1)
 coef(ordnet1, matrix=TRUE, criteria="aic") #by default, best AIC model is returned
-
 # CV by misclassification error
 # ordinalNetCV(x, y, tuneMethod = "cvMisclass")
 ```
@@ -579,16 +570,12 @@ sum(diag(table(classtree.pred.fit0.interact, deathrate.test)))/36
 pred_matrix.ordnet1 <- test_oh_wv_2012 %>%  #x is a matrix of predictors
   dplyr::select(est_death_rate_cat, pharmacy_num_ptt, most_dist_channel, dominance, median_income,
                 political_aff, act_wt_person_county, perc_oxy, distr_num_ptt)
-
 x.test.ordnet1<-model.matrix(est_death_rate_cat~., pred_matrix.ordnet1)
-
 ordnet.pred<-predict(ordnet1, newx = x.test.ordnet1, whichLambda = NULL,
       criteria = "aic", type = "class")
-
 deathrate.test <- as.character(test_oh_wv_2012$est_death_rate_cat)
 no.cat.test<-str_replace(deathrate.test, "cat_", "")
 no.cat.test<-as.numeric(no.cat.test)
-
 table(ordnet.pred, no.cat.test)
 z<-c(0, 0, 0, 0, 0)
 table<-rbind(table(ordnet.pred, no.cat.test), z)
@@ -604,19 +591,14 @@ pharm_num.test.ordnet1 = as.data.frame(pred_matrix.ordnet1) %>%
          median_income = 43194.13,
          political_aff="Republican",
          perc_oxy = 54.2, act_wt_person_county = 0.19294084, distr_num_ptt = 1.709)
-
-
 classprob_pharm_num  <- predict(fit.select, newdata = pharm_num.test.ordnet1, type = "probs")
-
 # plotting
 classprob_pharm_num_df = t(classprob_pharm_num) %>% 
   as.data.frame() %>%
   cumsum() %>% t() %>% as.data.frame() %>% 
   dplyr::select(-`cat_6`)
-
 rownames(classprob_pharm_num_df) = NULL
 colnames(classprob_pharm_num_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
-
 # plotting
 classcumprob_pharm_num_df = as.data.frame(classprob_pharm_num_df) %>%
   cbind(pharm_num.test.ordnet1) %>%
@@ -644,20 +626,14 @@ dom_channel.test.ordnet1 = as.data.frame(pred_matrix.ordnet1) %>%
          political_aff = "Republican",
          act_wt_person_county = 0.19294084,
          perc_oxy = 54.2, distr_num_ptt = 1.709)
-
 classprob_most_dist_channel <- predict(fit.select, newdata = dom_channel.test.ordnet1, type = "probs")
-
-
-
 # plotting
 classprob_most_dist_channel_df = t(classprob_most_dist_channel) %>% 
   as.data.frame() %>%
   cumsum() %>% t() %>% as.data.frame() %>% 
   dplyr::select(-`cat_6`)
-
 rownames(classprob_most_dist_channel_df) = NULL
 colnames(classprob_most_dist_channel_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
-
 # plotting
 classcumprob_most_dist_channel_df = as.data.frame(classprob_most_dist_channel_df) %>%
   cbind(dom_channel.test.ordnet1) %>%
@@ -686,20 +662,14 @@ dom_channel.test.ordnet1 = as.data.frame(pred_matrix.ordnet1) %>%
          political_aff = "Republican",
          act_wt_person_county = 0.19294084,
          perc_oxy = 54.2, distr_num_ptt = 1.709)
-
 classprob_dom <- predict(fit.select, newdata = dom_channel.test.ordnet1, type = "probs")
-
-
-
 # plotting
 classprob_dom_df = t(classprob_dom) %>% 
   as.data.frame() %>%
   cumsum() %>% t() %>% as.data.frame() %>% 
   dplyr::select(-`cat_6`)
-
 rownames(classprob_dom_df) = NULL
 colnames(classprob_dom_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
-
 # plotting
 classcumprob_dom_df = as.data.frame(classprob_dom_df) %>%
   cbind(dom_channel.test.ordnet1) %>%
@@ -727,18 +697,14 @@ log_income.test.ordnet1 = as.data.frame(pred_matrix.ordnet1) %>%
          political_aff = "Republican",
          act_wt_person_county = 0.19294084,
          perc_oxy = 54.2, distr_num_ptt = 1.709)
-
 classprob_log_income <- predict(fit.select, newdata = log_income.test.ordnet1, type = "probs")
-
 # plotting
 classprob_log_income_df = t(classprob_log_income) %>% 
   as.data.frame() %>%
   cumsum() %>% t() %>% as.data.frame() %>% 
   dplyr::select(-`cat_6`)
-
 rownames(classprob_log_income_df) = NULL
 colnames(classprob_log_income_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
-
 # plotting
 classcumprob_log_income_df = as.data.frame(classprob_log_income_df) %>%
   cbind(log_income.test.ordnet1) %>%
@@ -766,18 +732,14 @@ polaff.test.ordnet1 = as.data.frame(pred_matrix.ordnet1) %>%
          median_income = 43194.13,
          act_wt_person_county = 0.19294084,
          perc_oxy = 54.2, distr_num_ptt = 1.709)
-
 classprob_polaff <- predict(fit.select, newdata = polaff.test.ordnet1, type = "probs")
-
 # plotting
 classprob_polaff_df = t(classprob_polaff) %>% 
   as.data.frame() %>%
   cumsum() %>% t() %>% as.data.frame() %>% 
   dplyr::select(-`cat_6`)
-
 rownames(classprob_polaff_df) = NULL
 colnames(classprob_polaff_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
-
 # plotting
 classcumprob_polaff_df = as.data.frame(classprob_polaff_df) %>%
   cbind(polaff.test.ordnet1) %>%
@@ -808,18 +770,14 @@ act_wt.test.ordnet1 = as.data.frame(pred_matrix.ordnet1) %>%
          median_income = 43194.13,
          political_aff="Republican",
          perc_oxy = 54.2, distr_num_ptt = 1.709)
-
 classprob_act_wt <- predict(fit.select, newdata = act_wt.test.ordnet1, type = "probs")
-
 # plotting
 classprob_act_wt_df = t(classprob_act_wt) %>% 
   as.data.frame() %>%
   cumsum() %>% t() %>% as.data.frame() %>% 
   dplyr::select(-`cat_6`)
-
 rownames(classprob_act_wt_df) = NULL
 colnames(classprob_act_wt_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
-
 # plotting
 classcumprob_act_wt_df = as.data.frame(classprob_act_wt_df) %>%
   cbind(act_wt.test.ordnet1) %>%
@@ -847,18 +805,14 @@ perc_oxy.test.ordnet1 = as.data.frame(pred_matrix.ordnet1) %>%
          median_income = 43194.13,
          political_aff="Republican",
          act_wt_person_county = 0.19294084, distr_num_ptt = 1.709)
-
 classprob_perc_oxy <- predict(fit.select, newdata = perc_oxy.test.ordnet1, type = "probs")
-
 # plotting
 classprob_perc_oxy_df = t(classprob_perc_oxy) %>% 
   as.data.frame() %>%
   cumsum() %>% t() %>% as.data.frame() %>% 
   dplyr::select(-`cat_6`)
-
 rownames(classprob_perc_oxy_df) = NULL
 colnames(classprob_perc_oxy_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
-
 # plotting
 classcumprob_perc_oxy_df = as.data.frame(classprob_perc_oxy_df) %>%
   cbind(perc_oxy.test.ordnet1) %>%
@@ -885,19 +839,14 @@ distr_num.test.ordnet1 = as.data.frame(pred_matrix.ordnet1) %>%
          median_income = 43194.13,
          political_aff="Republican",
          act_wt_person_county = 0.19294084)
-
-
 classprob_distr_num  <- predict(fit.select, newdata = distr_num.test.ordnet1, type = "probs")
-
 # plotting
 classprob_distr_num_df = t(classprob_distr_num) %>% 
   as.data.frame() %>%
   cumsum() %>% t() %>% as.data.frame() %>% 
   dplyr::select(-`cat_6`)
-
 rownames(classprob_distr_num_df) = NULL
 colnames(classprob_distr_num_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
-
 # plotting
 classcumprob_distr_num_df = as.data.frame(classprob_distr_num_df) %>%
   cbind(distr_num.test.ordnet1) %>%
@@ -915,4 +864,231 @@ ggplot(classcumprob_distr_num_df, aes(x = distr_num_ptt, y = probability)) +
           panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           legend.title = element_blank())
+```
+
+#### interaction plots for fit.select
+
+```{r}
+## number of pharmacies and political affilition
+# Republican
+pharm_num.test.ordnet1_rep = as.data.frame(pred_matrix.ordnet1) %>%
+  mutate(most_dist_channel = "RETAIL PHARMACY", dominance = "Yes",
+         median_income = 43194.13,
+         political_aff="Republican",
+         perc_oxy = 54.2, act_wt_person_county = 0.19294084, distr_num_ptt = 1.709)
+
+classprob_pharm_num_rep  <- predict(fit.select, newdata = pharm_num.test.ordnet1_rep, type = "probs", se.fit = TRUE)
+# plotting
+classprob_pharm_num_rep_df = t(classprob_pharm_num_rep) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_pharm_num_rep_df) = NULL
+colnames(classprob_pharm_num_rep_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_pharm_num_rep_df = as.data.frame(classprob_pharm_num_rep_df) %>%
+  cbind(pharm_num.test.ordnet1_rep) %>%
+  dplyr::select(pharmacy_num_ptt, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+  
+num_pharm_rep_p = ggplot(classcumprob_pharm_num_rep_df, aes(x = pharmacy_num_ptt, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Republican", 
+         y = "P(Y<=j)",
+         x= "Pharmacy Number PTT") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+
+# Democrat
+pharm_num.test.ordnet1_dem = as.data.frame(pred_matrix.ordnet1) %>%
+  mutate(most_dist_channel = "RETAIL PHARMACY", dominance = "Yes",
+         median_income = 43194.13,
+         political_aff="Democrat",
+         perc_oxy = 54.2, act_wt_person_county = 0.19294084, distr_num_ptt = 1.709)
+
+classprob_pharm_num_dem  <- predict(fit.select, newdata = pharm_num.test.ordnet1_dem, type = "probs", se.fit = TRUE)
+# plotting
+classprob_pharm_num_dem_df = t(classprob_pharm_num_dem) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_pharm_num_dem_df) = NULL
+colnames(classprob_pharm_num_dem_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_pharm_num_dem_df = as.data.frame(classprob_pharm_num_dem_df) %>%
+  cbind(pharm_num.test.ordnet1_dem) %>%
+  dplyr::select(pharmacy_num_ptt, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+  
+num_pharm_dem_p = ggplot(classcumprob_pharm_num_dem_df, aes(x = pharmacy_num_ptt, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Democrat",
+         y = "P(Y<=j)",
+         x= "Pharmacy Number PTT") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank(),
+          legend.position = "none")
+
+num_pharm_rep_p + num_pharm_dem_p
+# plot_grid(num_pharm_rep_p, num_pharm_dem_p, axis = "r", align = "v")
+
+# probability of falling below a category decreases faster for democrats. is
+# significant? because our dataset is small.
+```
+
+```{r}
+## distribution channel and income
+
+# RETAIL PHARMACRY
+income.test.ordnet1_rp = as.data.frame(pred_matrix.ordnet1) %>%
+  mutate(most_dist_channel = "RETAIL PHARMACY", dominance = "Yes",
+         pharmacy_num_ptt = 3.038,
+         political_aff="Republican",
+         perc_oxy = 54.2, act_wt_person_county = 0.19294084, distr_num_ptt = 1.709)
+
+classprob_income_rp  <- predict(fit.select, newdata = income.test.ordnet1_rp, type = "probs", se.fit = TRUE)
+# plotting
+classprob_income_rp_df = t(classprob_income_rp) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_income_rp_df) = NULL
+colnames(classprob_income_rp_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_income_rp_df = as.data.frame(classprob_income_rp_df) %>%
+  cbind(income.test.ordnet1_rp) %>%
+  dplyr::select(median_income, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+  
+income_rp_p = ggplot(classcumprob_income_rp_df, aes(x = median_income, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Retail Pharmacy", 
+         y = "P(Y<=j)",
+         x= "Median Income") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+
+# RETAIL PHARMACRY
+income.test.ordnet1_cp = as.data.frame(pred_matrix.ordnet1) %>%
+  mutate(most_dist_channel = "CHAIN PHARMACY", dominance = "Yes",
+         pharmacy_num_ptt = 3.038,
+         political_aff="Republican",
+         perc_oxy = 54.2, act_wt_person_county = 0.19294084, distr_num_ptt = 1.709)
+
+classprob_income_cp  <- predict(fit.select, newdata = income.test.ordnet1_cp, type = "probs", se.fit = TRUE)
+# plotting
+classprob_income_cp_df = t(classprob_income_cp) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_income_cp_df) = NULL
+colnames(classprob_income_cp_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_income_cp_df = as.data.frame(classprob_income_cp_df) %>%
+  cbind(income.test.ordnet1_cp) %>%
+  dplyr::select(median_income, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+  
+income_cp_p = ggplot(classcumprob_income_cp_df, aes(x = median_income, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Chain Pharmacy", 
+         y = "P(Y<=j)",
+         x= "Median Income") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank(),
+          legend.position = "none")
+
+income_rp_p + income_cp_p
+# plot_grid(income_rp_p, income_cp_p, axis = "r", align = "v")
+```
+
+```{r}
+## pharmacy number and log median income
+# range of pharmacy number ptt: 0.928 4.850
+
+# fixing pharmacy number at = 1
+income.test.ordnet1_1 = as.data.frame(pred_matrix.ordnet1) %>%
+  mutate(most_dist_channel = "RETAIL PHARMACY", dominance = "Yes",
+         pharmacy_num_ptt = 1,
+         political_aff="Republican",
+         perc_oxy = 54.2, act_wt_person_county = 0.19294084, distr_num_ptt = 1.709)
+
+classprob_income_1  <- predict(fit.select, newdata = income.test.ordnet1_1, type = "probs", se.fit = TRUE)
+# plotting
+classprob_income_1_df = t(classprob_income_1) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_income_1_df) = NULL
+colnames(classprob_income_1_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_income_1_df = as.data.frame(classprob_income_1_df) %>%
+  cbind(income.test.ordnet1_1) %>%
+  dplyr::select(median_income, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+  
+income_1_p = ggplot(classcumprob_income_1_df, aes(x = median_income, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Pharmacy Number PTT = 1", 
+         y = "P(Y<=j)",
+         x= "Median Income") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank())
+
+# fixing pharmacy number at = 4
+income.test.ordnet1_4 = as.data.frame(pred_matrix.ordnet1) %>%
+  mutate(most_dist_channel = "CHAIN PHARMACY", dominance = "Yes",
+         pharmacy_num_ptt = 4,
+         political_aff="Republican",
+         perc_oxy = 54.2, act_wt_person_county = 0.19294084, distr_num_ptt = 1.709)
+
+classprob_income_4  <- predict(fit.select, newdata = income.test.ordnet1_4, type = "probs", se.fit = TRUE)
+# plotting
+classprob_income_4_df = t(classprob_income_4) %>% 
+  as.data.frame() %>%
+  cumsum() %>% t() %>% as.data.frame() %>% 
+  dplyr::select(-`cat_6`)
+rownames(classprob_income_4_df) = NULL
+colnames(classprob_income_4_df) = c("P[Y<=1]", "P[Y<=2]", "P[Y<=3]", "P[Y<=4]", "P[Y<=5]")
+# plotting
+classcumprob_income_4_df = as.data.frame(classprob_income_4_df) %>%
+  cbind(income.test.ordnet1_4) %>%
+  dplyr::select(median_income, `P[Y<=1]`:`P[Y<=5]`) %>%
+  gather(key = "class", value = "probability", `P[Y<=1]`:`P[Y<=5]`) %>%
+  mutate(class = as.factor(class))
+  
+income_4_p = ggplot(classcumprob_income_4_df, aes(x = median_income, y = probability)) +
+    geom_line(aes(color = class, group = class)) +
+    labs(title = "Pharmacy Number PTT = 4", 
+         y = "P(Y<=j)",
+         x= "Median Income") +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.text.x = element_text(face = "bold"),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          legend.title = element_blank(),
+          legend.position = "none")
+
+income_1_p + income_4_p
+# plot_grid(income_1_p, income_4_p, axis = "r", align = "v")
 ```
