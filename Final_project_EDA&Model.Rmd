@@ -417,18 +417,6 @@ ctable.interact.1 <- coef(summary(fit1_interact))
 p1.interact <- pnorm(abs(ctable.interact.1[, "t value"]), lower.tail = FALSE) * 2
 ## combined table
 (ctable.interact.1 <- cbind(ctable.interact.1, "p value" = p1.interact))
-
-#not significant at p=0.05: political aff republican, active weight pp county, perc, oxy, distr_num_ptt, income*political, act weight * no. of dist., pharmacy nu * active weight, pharmacy num * political, dominance yes: perc_oxy, active weight* oxy 
-#sig ones: dist channel retail * income, pharmacy*income
-##ordinal with interactions
-fit1_interact_ord<-nnet::multinom(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt + log(median_income)*political_aff+act_wt_person_county*distr_num_ptt+act_wt_person_county*pharmacy_num_ptt+pharmacy_num_ptt*political_aff+log(median_income)*most_dist_channel+log(median_income)*pharmacy_num_ptt+perc_oxy*dominance+act_wt_person_county*perc_oxy, data=train_oh_wv_2012)
-summary(fit1_interact_ord)
-mostImportantVariables.ord.interact <- varImp(fit1_interact_ord)
-mostImportantVariables.ord.interact$Variables <- row.names(mostImportantVariables.ord.interact)
-mostImportantVariables.ord.interact <- mostImportantVariables.ord.interact[order(-mostImportantVariables.ord.interact$Overall),]
-print(head(mostImportantVariables.ord.interact))
-knitr::kable(fit1_interact_ord %>% tidy(conf.int=TRUE),format="html",digits=3)
-
 ```
 
 ### Backward selection to get lowest AIC (cumulative logit with interactions) - FINAL MODEL
@@ -584,7 +572,7 @@ sum(diag(table))/36
 #pharmacy no
 pharm_num.test.ordnet1 = as.data.frame(pred_matrix.ordnet1) %>%
   mutate(most_dist_channel = "RETAIL PHARMACY", dominance = "Yes",
-         median_income = 43194.13,
+         median_income = 43194.13, 
          political_aff="Republican",
          perc_oxy = 54.2, act_wt_person_county = 0.19294084, distr_num_ptt = 1.709)
 classprob_pharm_num  <- predict(fit.select, newdata = pharm_num.test.ordnet1, type = "probs")
@@ -615,7 +603,7 @@ ggplot(classcumprob_pharm_num_df, aes(x = pharmacy_num_ptt, y = probability)) +
 ```
 
 ```{r}
-summary(fit.select)
+#summary(fit.select)
 # most_dist_channel
 dom_channel.test.ordnet1 = as.data.frame(pred_matrix.ordnet1) %>%
   mutate(pharmacy_num_ptt = 3.038, dominance="Yes", median_income=43194.13,
@@ -933,8 +921,8 @@ num_pharm_dem_p = ggplot(classcumprob_pharm_num_dem_df, aes(x = pharmacy_num_ptt
           legend.title = element_blank(),
           legend.position = "none")
 
-num_pharm_rep_p + num_pharm_dem_p
-# plot_grid(num_pharm_rep_p, num_pharm_dem_p, axis = "r", align = "v")
+# num_pharm_rep_p + num_pharm_dem_p
+plot_grid(num_pharm_rep_p, num_pharm_dem_p, axis = "r", align = "v")
 
 # probability of falling below a category decreases faster for democrats. is
 # significant? because our dataset is small.
