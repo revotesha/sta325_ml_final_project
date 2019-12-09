@@ -1,8 +1,10 @@
 ---
 title: "final project_EDA and Model"
-author: "Alice Liao, Revo Tesha, Salvador, Cindy, Evelyn "
+author: 'Alice Liao, Revo Tesha, Salvador, Cindy, Evelyn '
 date: "12/1/2019"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -50,7 +52,7 @@ death_rate_p = ggplot(train_oh_wv_2012, aes(x = imput_est_death_rate_num)) +
   labs(x = "Estimated death rate")
 tdeath_rate_p = ggplot(train_oh_wv_2012, aes(x = log(imput_est_death_rate_num))) +
   geom_histogram() +
-  labs(x = "log of xsEstimated death rate")
+  labs(x = "log of Estimated death rate")
 plot_grid(death_rate_p,tdeath_rate_p)
 # death rate - categorial
 ggplot(train_oh_wv_2012)+
@@ -58,7 +60,6 @@ ggplot(train_oh_wv_2012)+
   labs(x = "Death Rate (Categorical)",
        title = "Distribution of Death Rate")
 ```
-
 
 ```{r}
 # hydrocodone -- log transformation
@@ -494,30 +495,16 @@ importance(rf.tree) # log_income and act_wt_person are most important predictors
 varImpPlot(rf.tree)
 ```
 
-```{r}
-## Boosting
-library(gbm)
-set.seed(6)
-boost <- gbm(est_death_rate_cat ~ ., data = pred_matrix, distribution = "gaussian", n.trees = 5000, interaction.depth = 1) 
-# distribution = "gaussian", but gaussian uses baseline logistic regression - doesn't account for order --> may not be a good model to begin with
-# distribution = "multinomial" doesn't work?? 
-summary(boost)
-boost.pred <- predict(boost, newdata = bag.test, n.trees = 5000) # need to assign class to the numerical predicted values
-dim(boost.pred)
-table(boost.pred, deathrate.test)
-sum(diag(table(boost.pred, deathrate.test)))/36 # correctly classified ~5.55%
-```
-
-### Ordinal Net 
+### Ordinal package
 ```{r}
 library(ordinalNet)
-set.seed(1234)
 y<-as.factor(train_oh_wv_2012$est_death_rate_cat)
 x<-model.matrix(est_death_rate_cat~., pred_matrix)
-class(x)
-ordnet1 <- ordinalNet(x, y, family="cumulative", link="logit",
-                   parallelTerms=TRUE, nonparallelTerms=TRUE, alpha=1, # alpha = 1 means Lasso
-                   standardize = TRUE)
+#View(x)
+ordnet1 <- ordinalNet(x, y, family="cumulative",
+                   parallelTerms=FALSE, nonparallelTerms=TRUE, # alpha = 1 means Lasso
+                   standardize = FALSE)
+
 summary(ordnet1)
 coef(ordnet1, matrix=TRUE, criteria="aic") #by default, best AIC model is returned
 # CV by misclassification error
@@ -566,7 +553,7 @@ table<-rbind(table(ordnet.pred, no.cat.test), z)
 sum(diag(table))/36
 ```
 
-#### prediction plots for fit.select
+#### prediction plots for fit.select using TRAINING
 
 ```{r}
 #pharmacy no
@@ -743,8 +730,6 @@ ggplot(classcumprob_polaff_df, aes(x = political_aff, y = probability)) +
           panel.grid.minor = element_blank(),
           legend.title = element_blank())
 ```
-
-
 
 
 ```{r}
@@ -1985,7 +1970,6 @@ income_cp_p.retail.3.5
 ```
 
 
-
 ```{r}
 ## pharmacy number and log median income
 # range of pharmacy number ptt: 0.928 4.850
@@ -2064,11 +2048,13 @@ plot_grid(income_1_p, income_4_p, axis = "r", align = "v")
 ##Check proportional odds assumption
 ```{r}
 summary(fit.select)
-cumu.logistic.select = nnet::multinom(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + 
+library(ordinal)
+clm<-clm(formula = est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + 
     dominance + log(median_income) + political_aff + act_wt_person_county + 
     pharmacy_num_ptt:political_aff + most_dist_channel:log(median_income) + 
-    pharmacy_num_ptt:log(median_income), data = train_oh_wv_2012)
-knitr::kable(cumu.logistic.select%>% tidy(conf.int=TRUE),format="html",digits=3)
+    pharmacy_num_ptt:log(median_income), data=train_oh_wv_2012,
+      link = c("logit"))
+nominal_test(clm) #no evidence of non-proportional odds
 ```
 
 
