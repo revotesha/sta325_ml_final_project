@@ -347,6 +347,19 @@ ggplot(data = train_oh_wv_2012,
        color = "Most Common \nDistribution Channel")
 ```
 
+### Quick check for clustering
+```{r}
+ggplot(oh_wv_2012,
+       aes(x = median_income, y = act_wt_person_county, color = as.factor(est_death_rate_cat))) +
+  # geom_mark_ellipse(aes(fill = as.factor(est_death_rate_cat))) + 
+  geom_point() +
+  # geom_smooth(se = FALSE, method = "lm") +
+  labs(title = "Active Weight Per Person vs. Median Income",
+       x = "Median Income",
+       y = "Active Weight Per Person",
+       color = "Death Rate Categories") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
 
 ## Modeling
 
