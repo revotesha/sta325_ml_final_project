@@ -379,31 +379,6 @@ fit0.interact <- nnet::multinom(est_death_rate_cat ~ pharmacy_num_ptt + most_dis
 summary(fit0.interact)
 ```
 
-```{r}
-# fit0 and cumu.logistic are the SAME
-############################################################################
-cumu.logistic = nnet::multinom(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt, data=train_oh_wv_2012)
-summary(cumu.logistic)
-mostImportantVariables <- varImp(cumu.logistic)
-mostImportantVariables$Variables <- row.names(mostImportantVariables)
-mostImportantVariables <- mostImportantVariables[order(-mostImportantVariables$Overall),]
-print(mostImportantVariables)
-knitr::kable(cumu.logistic %>% tidy(conf.int=TRUE),format="html",digits=3)
-```
-
-```{r}
-# fit0.interact and fit1_interact_ord are the SAME
-##########################################################################
-##ordinal with interactions
-fit1_interact_ord<-nnet::multinom(est_death_rate_cat ~ pharmacy_num_ptt + most_dist_channel + dominance + log(median_income) +  political_aff + act_wt_person_county + perc_oxy + distr_num_ptt + log(median_income)*political_aff+act_wt_person_county*distr_num_ptt+act_wt_person_county*pharmacy_num_ptt+pharmacy_num_ptt*political_aff+log(median_income)*most_dist_channel+log(median_income)*pharmacy_num_ptt+perc_oxy*dominance+act_wt_person_county*perc_oxy, data=train_oh_wv_2012)
-summary(fit1_interact_ord)
-mostImportantVariables.ord.interact <- varImp(fit1_interact_ord)
-mostImportantVariables.ord.interact$Variables <- row.names(mostImportantVariables.ord.interact)
-mostImportantVariables.ord.interact <- mostImportantVariables.ord.interact[order(-mostImportantVariables.ord.interact$Overall),]
-print(head(mostImportantVariables.ord.interact))
-knitr::kable(fit1_interact_ord %>% tidy(conf.int=TRUE),format="html",digits=3)
-```
-
 ### Cumulative logistic regression
 
 ```{r}
